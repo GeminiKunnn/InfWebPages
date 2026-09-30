@@ -1,0 +1,76 @@
+<!doctype html>
+<html class="no-js" lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>无限流角色卡</title>
+  <link rel="stylesheet" href="css/style.css">
+  <meta name="description" content="参考 Rules 规则建立的无限流角色卡网页。">
+
+  <!-- ============================================================
+       未来 Vue 接入预留点
+       1) 引入 Vue 与对应入口：
+            <script type="module" src="js/vue/index.js"></script>
+       2) 本页的 #app 容器可作为根组件的挂载点（Vue 会接管其内部 DOM）。
+       3) character-config.js / store.js 可直接复用为 Vue 的状态。
+       ============================================================ -->
+</head>
+
+<body>
+
+  <div class="layout">
+
+    <!-- ================= 左侧垂直菜单栏 ================= -->
+    <aside class="sidebar" id="sidebar">
+      <!-- 折叠 / 展开按钮 -->
+      <button
+        type="button"
+        class="collapse-btn"
+        data-action="toggle-sidebar"
+        aria-label="折叠或展开菜单"
+        title="折叠 / 展开"
+      >
+        <span class="collapse-icon">☰</span>
+      </button>
+
+      <div class="brand">
+        <span class="brand-mark">∞</span>
+        <span class="brand-text">无限流</span>
+      </div>
+
+      <!-- 菜单项：规则书 / 角色卡 / 其他 -->
+      <nav class="menu" id="menu">
+        <button type="button" class="menu-item" data-page="rules">
+          <span class="menu-icon">📖</span>
+          <span class="menu-text">规则书</span>
+        </button>
+        <button type="button" class="menu-item" data-page="character">
+          <span class="menu-icon">🧾</span>
+          <span class="menu-text">角色卡</span>
+        </button>
+        <button type="button" class="menu-item" data-page="other">
+          <span class="menu-icon">➕</span>
+          <span class="menu-text">其他</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="menu-text">v0.1.0</span>
+      </div>
+    </aside>
+
+    <!-- ================= 右侧内容区（页面切换渲染到这里） ================= -->
+    <main class="content" id="content">
+      <div id="app"></div>
+      <!-- 未来 Vue 迁移：可将 #app 作为根组件挂载点 -->
+    </main>
+
+  </div>
+
+  <!-- 脚本改为 ES Module，以支持 import（依赖各模块文件需经静态服务器访问） -->
+  <script type="module" src="js/app.js"></script>
+
+</body>
+
+</html>

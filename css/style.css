@@ -1,0 +1,486 @@
+/* style.css — 无限流角色卡样式 */
+
+:root {
+  --sidebar-w: 216px;
+  --sidebar-w-collapsed: 60px;
+  --bg: #f4f5f7;
+  --panel: #ffffff;
+  --ink: #1f2329;
+  --muted: #7a818a;
+  --line: #e3e6ea;
+  --accent: #2f6fed;
+  --accent-weak: #eef3ff;
+  --ok: #2e9e5b;
+  --border-radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC",
+    "Noto Sans SC", sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+/* ---------- 整体布局：左侧菜单 + 右侧内容 ---------- */
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ================= 左侧垂直菜单栏 ================= */
+.sidebar {
+  width: var(--sidebar-w);
+  flex: 0 0 var(--sidebar-w);
+  background: #1e2530;
+  color: #cfd6e0;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 10px;
+  gap: 10px;
+  transition: width 0.22s ease, flex-basis 0.22s ease;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 折叠状态：只显示图标与按钮文字（图标保留） */
+.sidebar.collapsed {
+  width: var(--sidebar-w-collapsed);
+  flex-basis: var(--sidebar-w-collapsed);
+}
+
+.collapse-btn {
+  align-self: flex-end;
+  background: transparent;
+  border: 1px solid #3a4553;
+  color: #cfd6e0;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.collapse-btn:hover {
+  background: #2a3441;
+}
+
+/* 品牌（顶部，紧接折叠按钮下方） */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px;
+  font-weight: 600;
+  color: #fff;
+}
+.brand-mark {
+  font-size: 18px;
+}
+.sidebar.collapsed .brand-text {
+  display: none;
+}
+
+/* 菜单项 */
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #cfd6e0;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.menu-item:hover {
+  background: #2a3441;
+  color: #fff;
+}
+.menu-item.active {
+  background: var(--accent);
+  color: #fff;
+}
+.menu-icon {
+  flex: 0 0 auto;
+  font-size: 17px;
+  width: 22px;
+  text-align: center;
+}
+
+/* 折叠时隐藏文本，保留图标 */
+.sidebar.collapsed .menu-item {
+  justify-content: center;
+  padding: 10px;
+}
+.sidebar.collapsed .menu-text {
+  display: none;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #7a8698;
+  white-space: nowrap;
+}
+
+/* ================= 右侧内容区 ================= */
+.content {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 24px 24px 64px;
+}
+
+.page {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+/* ---------- 顶部 ---------- */
+.masthead {
+  margin-bottom: 16px;
+}
+.masthead h1 {
+  margin: 0 0 4px;
+  font-size: 28px;
+}
+.subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ---------- 分区卡片 ---------- */
+.card-section {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.section-title {
+  margin: 0 0 14px;
+  font-size: 18px;
+  border-left: 4px solid var(--accent);
+  padding-left: 10px;
+}
+
+/* ---------- 概念段 ---------- */
+.concept-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 14px;
+}
+.concept-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.concept-field.span-2 {
+  grid-column: span 2;
+}
+.field-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+.concept-field input,
+.concept-field textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  width: 100%;
+}
+.concept-field textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+.concept-field input:focus,
+.concept-field textarea:focus {
+  outline: 2px solid var(--accent-weak);
+  border-color: var(--accent);
+}
+
+/* ---------- 属性 / 技能表 ---------- */
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.stats-table th,
+.stats-table td,
+.dyn-table th,
+.dyn-table td {
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+.stats-table th,
+.dyn-table th {
+  background: #f7f8fa;
+  font-weight: 600;
+  font-size: 13px;
+}
+.stats-table tr:hover td,
+.dyn-table tbody tr:hover td {
+  background: #fafbfc;
+}
+.row-label {
+  text-align: left;
+  font-weight: 500;
+}
+
+/* 数字输入 / 下拉 / 文本输入 的通用样式 */
+.stats-table input,
+.dyn-table input,
+.stats-table select,
+.dyn-table select {
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font: inherit;
+  text-align: center;
+}
+.stats-table input[type='number'],
+.dyn-table input[type='number'] {
+  width: 52px;
+  padding: 3px 4px;
+}
+.stats-table select,
+.dyn-table select {
+  padding: 4px 6px;
+  text-align: left;
+  max-width: 120px;
+}
+.stats-table input:focus,
+.dyn-table input:focus,
+.stats-table select:focus,
+.dyn-table select:focus {
+  outline: 2px solid var(--accent-weak);
+  border-color: var(--accent);
+}
+
+.base-col {
+  background: #fbfcff;
+}
+.bonus-col {
+
+}
+.calc-col,
+.value-status,
+.legendary-cell {
+  color: var(--accent);
+}
+.calc-col {
+  font-weight: 600;
+}
+.value-status {
+  font-size: 15px;
+  font-weight: 600;
+}
+.legendary-cell {
+  font-size: 14px;
+}
+
+/* ---------- Sheet 标签栏（类似 Excel 表单切换） ---------- */
+.sheet-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--line);
+}
+.sheet-tab {
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  background: #eceef1;
+  color: #4a5159;
+  font-size: 14px;
+  cursor: pointer;
+}
+.sheet-tab:hover {
+  background: #e2e6ea;
+}
+.sheet-tab.active {
+  background: var(--panel);
+  color: var(--accent);
+  font-weight: 600;
+  border-color: var(--accent);
+  box-shadow: 0 -1px 0 var(--panel);
+}
+
+.sheet-body {
+  min-height: 200px;
+}
+
+/* ---------- 动态列表（法术 / 特殊攻击 / 能量池） ---------- */
+.add-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.add-hint {
+  color: var(--muted);
+  font-size: 13px;
+}
+.dyn-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.dyn-table td {
+  font-size: 13px;
+}
+.name-col {
+  min-width: 110px;
+}
+.name-col input {
+  text-align: left;
+  width: 100%;
+  padding: 4px 6px;
+}
+.dyn-table input[type='text'] {
+  padding: 4px 6px;
+}
+.effect-col textarea,
+.effect-col input[type='text'] {
+  width: 100%;
+  text-align: left;
+}
+.effect-col textarea {
+  min-height: 38px;
+  resize: vertical;
+  padding: 4px 6px;
+}
+.del-col {
+  width: 40px;
+}
+.del-btn {
+  background: transparent;
+  border: 1px solid #e5c9c9;
+  color: #b06b6b;
+  border-radius: 5px;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+.del-btn:hover {
+  background: #fdecec;
+  border-color: #c58080;
+  color: #a14b4b;
+}
+.empty-hint {
+  color: var(--muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* ---------- 操作条 & 按钮 ---------- */
+.action-bar {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+}
+.btn {
+  padding: 9px 18px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+.btn:hover {
+  opacity: 0.92;
+}
+.btn-ghost {
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+/* ---------- 预留占位 ---------- */
+.placeholder-block {
+  border: 1px dashed #cdd3da;
+  border-radius: 8px;
+  padding: 16px;
+  background: #fafbfc;
+}
+.placeholder-title {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+.placeholder-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ---------- 空页面（规则书 / 其他） ---------- */
+.blank-page {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--muted);
+}
+.blank-page h2 {
+  font-size: 24px;
+  color: var(--ink);
+}
+
+/* ---------- 闪烁提示 ---------- */
+.flash {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #22282f;
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 50;
+}
+.flash.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 760px) {
+  .sidebar {
+    --sidebar-w: 176px;
+  }
+  .concept-field.span-2 {
+    grid-column: span 1;
+  }
+}
