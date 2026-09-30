@@ -532,12 +532,21 @@ function renderDefenseInfo() {
   return wrap;
 }
 
+// 敏感范围（总览/属性页共用）：感知属性×10 + 传奇感知×20 + 加成
+function sensitiveRangeTotal() {
+  const dd = character.derivedDetail.sensitive;
+  return (
+    attrPool('perception') * 10 + attrLegendary('perception') * 20 +
+    (dd.bonus || []).reduce((s, b) => s + (Number(b) || 0), 0)
+  );
+}
+
 // 其他信息：基因锁熟练度 / 敏感范围
 function renderOtherInfo() {
   const wrap = el('div', { class: 'overview-info' });
   const row = el('div', { class: 'info-grid' });
   row.appendChild(infoCell('基因锁熟练度', character.geneLock ?? 0, ''));
-  row.appendChild(infoCell('敏感范围', character.otherInfo.sensitive ? character.otherInfo.sensitive + ' m' : '—', ''));
+  row.appendChild(infoCell('敏感范围', `${sensitiveRangeTotal()} m`, ''));
   wrap.appendChild(row);
   return wrap;
 }
@@ -560,7 +569,7 @@ function renderMainSheet() {
 // 属性完整列（含加值栏）：属性 / 属性值 / 传奇 / 基础 / 内在 / 修行 / 内在 / 器械 / 完美 / 其它 / 其它 / 检定值
 // 按 生理/心智/互动 三系分组展示（参考角色卡 Excel 与基础规则.docx）
 function renderFullAttrTable() {
-  const table = el('table', { class: 'stats-table' });
+  const table = el('table', { class: 'stats-table attr-table' });
   table.appendChild(renderTitleRow(['属性', '属性值', '传奇', '基础', '内在', '修行', '内在', '器械', '完美', '其它', '其它', '检定值']));
   GROUPS.forEach((g) => {
     const items = ATTRIBUTES.filter((a) => a.group === g);
@@ -749,7 +758,6 @@ function renderSavesPanel() {
     }
     // 竖线分隔 + 右侧附加成功加值（加值1/2/3，计入 m；横向排布与主体 input 对齐）
     const esc = el('div', { class: 'detail-extra-succ' });
-    esc.appendChild(el('span', { class: 'detail-extra-succ-label', text: '附加成功' }));
     for (let k = 3; k < 6; k++) {
       const idx = i * 6 + k;
       esc.appendChild(
@@ -892,7 +900,6 @@ function renderBaseAttackDetail() {
 
     // 竖线分隔 + 右侧附加成功加值（加值1/2/3，计入 m；横向排布与主体 input 对齐）
     const esc = el('div', { class: 'detail-extra-succ' });
-    esc.appendChild(el('span', { class: 'detail-extra-succ-label', text: '附加成功' }));
     for (let k = 0; k < 3; k++) {
       const j = k;
       esc.appendChild(
@@ -918,9 +925,7 @@ function renderSensitiveRangeDetail() {
   const wrap = el('div', { class: 'attr-detail-panel' });
   const dd = character.derivedDetail.sensitive;
 
-  const recompute = () =>
-    attrPool('perception') * 10 + attrLegendary('perception') * 20 +
-    (dd.bonus || []).reduce((s, b) => s + (Number(b) || 0), 0);
+  const recompute = () => sensitiveRangeTotal();
 
   const box = el('div', { class: 'detail-box detail-box-accent' });
   const head = el('div', { class: 'detail-box-head' });
@@ -1046,8 +1051,7 @@ function refreshAttrDetail() {
     // 3) 敏感范围框（仿派生值样式）：总值 = 感知×10 + 传奇感知×20 + 加成；并同步「完好」输入跟随总值
     if (title === '敏感范围') {
       const d2 = box.querySelector('.detail-box-total');
-      const bon = (arr) => (arr || []).reduce((s, b) => s + (Number(b) || 0), 0);
-      if (d2) d2.textContent = attrPool('perception') * 10 + attrLegendary('perception') * 20 + bon(dd.sensitive.bonus);
+      if (d2) d2.textContent = sensitiveRangeTotal();
     }
     if (title === '生命值点数') {
       // 完好默认跟随总值（修改后变动）

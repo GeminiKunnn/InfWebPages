@@ -718,6 +718,11 @@ body {
 .bonus-col {
 
 }
+/* 属性加值表：在 修行列 与右侧 内在列(检定值档起点) 之间用一组平行线分隔（与边框同色） */
+.attr-table th:nth-child(7),
+.attr-table td:nth-child(7) {
+  border-left: 3px double var(--line);
+}
 .calc-col,
 .value-status,
 .legendary-cell {
