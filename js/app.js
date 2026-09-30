@@ -11,7 +11,15 @@
  *      改为 Vue 模板 + methods —— 其余代码基本可以原样复用。
  */
 
-import { ATTRIBUTES, SKILLS } from './character-config.js';
+import { ATTRIBUTES, SKILLS, GROUPS } from './character-config.js';
+
+/** 三系分组标题（生理/心智/互动），跨整行。 */
+function renderGroupRow(label, colspan) {
+  const tr = el('tr', { class: 'group-row' });
+  const td = el('td', { text: label, class: 'group-label', colspan });
+  tr.appendChild(td);
+  return tr;
+}
 import {
   emptyCharacter,
   newSpell,
@@ -22,6 +30,7 @@ import {
   newTrait,
   newPurchase,
   newRecord,
+  newReduction,
   api,
 } from './store.js';
 
@@ -43,7 +52,8 @@ const PAGES = [
 ];
 
 const SHEETS = [
-  { id: 'main', label: '角色属性' },
+  { id: 'main', label: '角色总览' },
+  { id: 'attrs', label: '角色属性' },
   { id: 'spells', label: '法术列表' },
   { id: 'attacks', label: '特殊攻击' },
   { id: 'energy', label: '能量池' },
@@ -84,9 +94,9 @@ function numberInput({ value, min = 0, max, onChange }) {
   return input;
 }
 
-function autoGrow(input) {
-  const text = String(input.value == null ? '' : input.value);
-  input.style.width = Math.max(44, Math.min(text.length + 2, 14) * 8) + 'px';
+// 数字/文本输入框宽度锁定：不再随输入内容伸缩，统一由 CSS 宽度固定（无论是否输入都不变长宽）。
+function autoGrow() {
+  /* 锁死宽度：不做任何宽度调整，保持 CSS 设定的固定宽 */
 }
 
 function textInput({ value, placeholder = '', onChange }) {
@@ -99,8 +109,9 @@ function textInput({ value, placeholder = '', onChange }) {
   return input;
 }
 
-function textarea({ value, placeholder = '', onChange }) {
+function textarea({ value, placeholder = '', onChange, className }) {
   const area = el('textarea', { value, placeholder });
+  if (className) area.className = className;
   area.addEventListener('input', (e) => onChange(e.target.value, area));
   return area;
 }
@@ -180,6 +191,7 @@ function renderAttrRow(attr) {
       onChange: (v) => {
         a.base = v;
         refreshAttrRow(tr);
+        refreshAttrDetail();
         character.meta.dirty = true;
       },
     })
@@ -194,6 +206,8 @@ function renderAttrRow(attr) {
         onChange: (v) => {
           a[b.key] = v;
           refreshAttrRow(tr);
+          refreshAttrDetail();
+          character.meta.dirty = true;
         },
       })
     );
@@ -253,6 +267,7 @@ function renderSkillRow(skill) {
       onChange: (v) => {
         s.base = v;
         refreshSkillRow(tr);
+        refreshAttrDetail();
       },
     })
   );
@@ -266,6 +281,7 @@ function renderSkillRow(skill) {
         onChange: (v) => {
           s[b.key] = v;
           refreshSkillRow(tr);
+          refreshAttrDetail();
         },
       })
     );
@@ -280,6 +296,7 @@ function renderSkillRow(skill) {
         onChange: (v) => {
           s[key] = v;
           refreshSkillRow(tr);
+          refreshAttrDetail();
         },
       })
     );
@@ -301,28 +318,6 @@ function renderTitleRow(titles) {
     head.appendChild(el('th', { text: t, class: idx === 0 ? '' : 'num-head' }));
   });
   return head;
-}
-
-function attrTable() {
-  const table = el('table', { class: 'stats-table' });
-  table.appendChild(
-    renderTitleRow([
-      '属性', '属性值', '传奇', '基础', '内在', '修行', '器械', '完美', '其它', '检定值',
-    ])
-  );
-  ATTRIBUTES.forEach((a) => table.appendChild(renderAttrRow(a)));
-  return table;
-}
-
-function skillTable() {
-  const table = el('table', { class: 'stats-table' });
-  table.appendChild(
-    renderTitleRow([
-      '技能', '检定值', '附加成功', '建卡', '内在', '修行', '器械', '完美', '士气', '其它',
-    ])
-  );
-  SKILLS.forEach((s) => table.appendChild(renderSkillRow(s)));
-  return table;
 }
 
 /* ------------------------- 概念段表单 ------------------------- */
@@ -351,14 +346,735 @@ function renderConcepts() {
   return wrap;
 }
 
-/* ------------------------- 【角色属性】面板 ------------------------- */
+/* ------------------------- 【角色总览】面板 ------------------------- */
+
+// 总览通用：一个信息卡片（label + 主值 + 附注）
+function infoCell(label, value, hint = '') {
+  const c = el('div', { class: 'derived-cell' });
+  c.appendChild(el('span', { class: 'derived-label', text: label }));
+  c.appendChild(el('span', { class: 'derived-value', text: value }));
+  if (hint) c.appendChild(el('span', { class: 'derived-hint', text: hint }));
+  return c;
+}
+
+// n+m 显示：m(=附加成功) 为 0 时隐藏 +m，仅显示 n
+function nm(n, m) {
+  return Number(m) > 0 ? `${n}+${m}` : `${n}`;
+}
+
+// 属性段（总览）：一行三个，三行九项；值显示 n+m（属性检定值 + 附加成功，m=0 隐藏），无 tips
+function renderAttrOverview() {
+  const wrap = el('div', { class: 'info-grid' });
+  ATTRIBUTES.forEach((a) => {
+    wrap.appendChild(infoCell(a.label, nm(attrValue(a.id), attrLegendary(a.id))));
+  });
+  return wrap;
+}
+
+// 技能段（总览）：按 生理/心智/互动 分区，每区一行三个；值显示 n+m（检定值 + 附加成功），无 tips
+function renderSkillOverview() {
+  const wrap = el('div', { class: 'skill-categories' });
+  const groups = [
+    ['生理系', '生理'],
+    ['心智系', '心智'],
+    ['互动系', '互动'],
+  ];
+  groups.forEach(([title, key]) => {
+    const block = el('div', { class: 'skill-category' });
+    const skills = SKILLS.filter((s) => s.group === key);
+    if (!skills.length) return;
+    block.appendChild(el('h3', { class: 'skill-group-title', text: title }));
+    const grid = el('div', { class: 'info-grid skill-grid' });
+    skills.forEach((s) => {
+      const cell = el('div', { class: 'derived-cell skill-cell' });
+      cell.appendChild(el('span', { class: 'derived-label', text: s.label }));
+      cell.appendChild(el('span', { class: 'derived-value skill-value', text: nm(skillValue(s.id), skillExtraSuccess(s.id)) }));
+      grid.appendChild(cell);
+    });
+    block.appendChild(grid);
+    wrap.appendChild(block);
+  });
+  return wrap;
+}
+
+// 五种基础攻击：名称 / 检定DP / 伤害上限 / 附加成功
+function baseAttackData(atk) {
+  const attrV = attrValue(atk.attr);
+  const skillV = skillValue(atk.skill);
+  const legAttr = attrLegendary(atk.attr);
+  const wdmg = atk.weaponDamage != null ? Number(atk.weaponDamage) : 0;
+  const ammo = atk.ammoDamage != null ? Number(atk.ammoDamage) : 0;
+  const addDmg = wdmg + (atk.id === 'semi' || atk.id === 'full' || atk.id === 'bow' ? ammo : 0);
+  const bonusSum = (atk.bonuses || []).reduce((s, b) => s + (Number(b) || 0), 0) + (Number(atk.other) || 0);
+  const checkDP = attrV + skillV + addDmg + (Number(atk.specialty) || 0) + bonusSum;
+  const damageCap =
+    addDmg +
+    Number(attrsOf(atk.attr).base) +
+    Number(character.skills[atk.skill].base) +
+    ((Number(atk.specialty) || 0) > 0 ? 1 : 0) +
+    legAttr * 2 +
+    (Number(character.geneLock) || 0);
+  const extraSuccess = skillExtraSuccess(atk.skill) + legAttr + bonusSum + (atk.extraSuccessBonus || []).reduce((s, b) => s + (Number(b) || 0), 0);
+  return { label: atk.label, checkDP, damageCap, extraSuccess };
+}
+
+// 基础攻击方式（总览）：一行三个，值显示 n+m（检定DP + 附加成功，m=0 隐藏），tips 仅保留伤害上限
+function renderAttackOverview() {
+  const wrap = el('div', { class: 'info-grid' });
+  character.baseAttacks.forEach((atk) => {
+    const d = baseAttackData(atk);
+    wrap.appendChild(infoCell(d.label, nm(d.checkDP, d.extraSuccess), `伤害上限 ${d.damageCap}`));
+  });
+  return wrap;
+}
+
+// 派生值（总览）：意志力 / 先攻值 / 移动力 + 三豁免（移入派生值）
+function renderOverviewDerived() {
+  const d = derivedValues();
+  const wrap = el('div', { class: 'derived-wrap' });
+  const grid = el('div', { class: 'info-grid' });
+  grid.appendChild(infoCell('意志力', d.willpower, '决心 + 沉着 + 传奇决心×3'));
+  grid.appendChild(infoCell('先攻值', d.initiative, '敏捷 + 沉着 + 传奇沉着×3'));
+  grid.appendChild(infoCell('移动力', d.movement, '5 + 力量 + 敏捷 + 传奇敏捷×3'));
+  wrap.appendChild(grid);
+
+  wrap.appendChild(el('h3', { class: 'skill-group-title save-head', text: '豁免检定' }));
+  const row = el('div', { class: 'info-grid save-row' });
+  // 总览豁免：值显示 n+m（基础豁免 + 附加成功，m=0 隐藏）
+  row.appendChild(infoCell('反射豁免', nm(d.reflex, saveOverviewExtra(0)), '敏捷 + 运动'));
+  row.appendChild(infoCell('意志豁免', nm(d.willSave, saveOverviewExtra(1)), '决心 + 感受'));
+  row.appendChild(infoCell('强韧豁免', nm(d.fortitude, saveOverviewExtra(2)), '耐力 + 求生'));
+  wrap.appendChild(row);
+  return wrap;
+}
+
+// 豁免「附加成功」展示值（不含属性页的附加成功加值）：技能附加成功 + 主属性传奇
+function saveOverviewExtra(i) {
+  return skillExtraSuccess(SAVE_DEFS[i].skill) + attrLegendary(SAVE_DEFS[i].attr);
+}
+
+// 护甲合计（总护甲 + 附加成功）
+function overviewArmorTotal() {
+  return (
+    (character.defense.armor.innate || 0) + (character.defense.armor.base || 0) +
+    (character.defense.armor.armor || 0) + (character.defense.armor.block || 0) +
+    (character.defense.armor.insight || 0) + (character.defense.armor.other || 0) +
+    (character.defense.armorBonus || []).reduce((s, b) => s + (Number(b) || 0), 0)
+  );
+}
+function armorExtraSuccess() {
+  return attrLegendary('stamina'); // 防御附加成功：传奇耐力
+}
+
+// 伤害减免：汇总「X物理减免，Y能量减免」
+function reductionSummary() {
+  const reds = (character.defense.reduction || []).filter((r) => Number(r.amount) > 0);
+  if (!reds.length) return '无伤害减免';
+  return reds.map((r) => `${Number(r.amount)}${r.type}减免`).join('，');
+}
+
+// 生命值：单独一部分，展示属性页计算完成的详细状态；总量显示 n+m（n 总量，m 临时生命，m=0 时隐藏 +m）
+function renderHealthPanel() {
+  const hp = character.hpSlots;
+  const d = derivedValues();
+  const parts = [];
+  if (Number(hp.intact) > 0) parts.push(`${hp.intact}`);
+  if (Number(hp.b) > 0) parts.push(`${hp.b}B`);
+  if (Number(hp.l) > 0) parts.push(`${hp.l}L`);
+  if (Number(hp.a) > 0) parts.push(`${hp.a}A`);
+  if (Number(hp.temp) > 0) parts.push(`${hp.temp}临时`);
+  const statusText = parts.length ? parts.join(' + ') : '0';
+  const temp = Number(hp.temp) || 0;
+  const totalText = temp > 0 ? `${d.health}+${temp}` : `${d.health}`;
+
+  const cell = infoCell('生命值总量', totalText, `状态 ${statusText}`);
+  // 控制区：右侧两个按钮 + 两个输入框（按钮左、输入框右，各占半行，暂不实现功能）
+  const ctrl = el('div', { class: 'health-ctrl' });
+  const mkAction = (label, key) => {
+    const row = el('div', { class: 'health-action' });
+    row.appendChild(actionButton(label, { action: 'health-action' }));
+    row.appendChild(numberInput({ value: 0, min: 0, onChange: () => {} }));
+    return row;
+  };
+  ctrl.appendChild(mkAction('回复生命', 'heal'));
+  ctrl.appendChild(mkAction('受到伤害', 'damage'));
+  cell.appendChild(ctrl);
+
+  const wrap = el('div', { class: 'health-panel' });
+  wrap.appendChild(cell);
+  return wrap;
+}
+
+// 防御信息：护甲（总+附加成功） + 伤害减免
+function renderDefenseInfo() {
+  const wrap = el('div', { class: 'defense-info' });
+  const grid = el('div', { class: 'info-grid' });
+  grid.appendChild(infoCell('护甲', nm(overviewArmorTotal(), armorExtraSuccess()), '总护甲+附加成功（传奇耐力）'));
+  wrap.appendChild(grid);
+
+  const bar = el('div', { class: 'reduction-bar' });
+  bar.appendChild(el('span', { class: 'reduction-label', text: '伤害减免' }));
+  bar.appendChild(el('span', { class: 'reduction-value', text: reductionSummary() }));
+  wrap.appendChild(bar);
+  return wrap;
+}
+
+// 其他信息：基因锁熟练度 / 敏感范围
+function renderOtherInfo() {
+  const wrap = el('div', { class: 'overview-info' });
+  const row = el('div', { class: 'info-grid' });
+  row.appendChild(infoCell('基因锁熟练度', character.geneLock ?? 0, ''));
+  row.appendChild(infoCell('敏感范围', character.otherInfo.sensitive ? character.otherInfo.sensitive + ' m' : '—', ''));
+  wrap.appendChild(row);
+  return wrap;
+}
 
 function renderMainSheet() {
   const wrap = el('div', { class: 'sheet-panel' });
   wrap.appendChild(section('概念段', renderConcepts()));
-  wrap.appendChild(section('属性段', attrTable()));
-  wrap.appendChild(section('技能段', skillTable()));
-  wrap.appendChild(section('派生值', renderDerivedPanel()));
+  wrap.appendChild(section('属性段', renderAttrOverview()));
+  wrap.appendChild(section('技能段', renderSkillOverview()));
+  wrap.appendChild(section('生命信息', renderHealthPanel()));
+  wrap.appendChild(section('防御信息', renderDefenseInfo())); // 防御信息移至生命信息下方
+  wrap.appendChild(section('派生值', renderOverviewDerived()));
+  wrap.appendChild(section('基础攻击方式', renderAttackOverview()));
+  wrap.appendChild(section('其他信息', renderOtherInfo()));
+  return wrap;
+}
+
+/* ------------------------- 【角色属性】面板（详细） ------------------------- */
+
+// 属性完整列（含加值栏）：属性 / 属性值 / 传奇 / 基础 / 内在 / 修行 / 器械 / 完美 / 其它 / 检定值
+// 按 生理/心智/互动 三系分组展示（参考角色卡 Excel 与基础规则.docx）
+function renderFullAttrTable() {
+  const table = el('table', { class: 'stats-table' });
+  table.appendChild(renderTitleRow(['属性', '属性值', '传奇', '基础', '内在', '修行', '器械', '完美', '其它', '检定值']));
+  GROUPS.forEach((g) => {
+    const items = ATTRIBUTES.filter((a) => a.group === g);
+    if (!items.length) return;
+    table.appendChild(renderGroupRow(`${g}系`, 10));
+    items.forEach((a) => table.appendChild(renderAttrRow(a)));
+  });
+  return table;
+}
+
+// 技能完整列（含加值栏）：技能 / 检定值 / 附加成功 / 建卡 / 内在 / 修行 / 器械 / 完美 / 士气 / 其它
+// 同样按 生理/心智/互动 三系分组展示
+function renderFullSkillTable() {
+  const table = el('table', { class: 'stats-table' });
+  table.appendChild(renderTitleRow(['技能', '检定值', '附加成功', '建卡', '内在', '修行', '器械', '完美', '士气', '其它']));
+  GROUPS.forEach((g) => {
+    const items = SKILLS.filter((s) => s.group === g);
+    if (!items.length) return;
+    table.appendChild(renderGroupRow(`${g}系`, 10));
+    items.forEach((s) => table.appendChild(renderSkillRow(s)));
+  });
+  return table;
+}
+
+// 属性细则：派生值计算 + 加成栏位（参考 Excel「属性细则」）
+// detailNumber: 绑定写回 + 就近刷新本框合计（避免整页重渲染导致失焦）。
+function detailNumber(value, write, recompute) {
+  const input = numberInput({
+    value,
+    onChange: (v) => {
+      write(v);
+      const box = input.closest('.detail-box');
+      const total = box ? box.querySelector('.detail-box-total') : null;
+      if (total) total.textContent = recompute();
+    },
+  });
+  return input;
+}
+
+function attrDetailBox(title, total, inputs, tip = '') {
+  // 派生值框：最左侧加蓝色竖条（参照基础攻击方式 .attack-detail）
+  const box = el('div', { class: 'detail-box detail-box-accent' });
+  const head = el('div', { class: 'detail-box-head' });
+  head.appendChild(el('span', { class: 'detail-box-title', text: title })); // 小标题在左上
+  box.appendChild(head);
+  // 总值从左下挪到最左侧：参照总览卡片，靠左放入「总值」栏（label + 大号数值）
+  const row = el('div', { class: 'detail-box-inputs' });
+  const tBlock = el('div', { class: 'detail-total-block' });
+  tBlock.appendChild(el('span', { class: 'detail-total-label', text: '总值' }));
+  tBlock.appendChild(el('span', { class: 'detail-box-total', text: total }));
+  row.appendChild(tBlock);
+  inputs.forEach((it) => {
+    const c = el('label', { class: 'detail-input' });
+    c.appendChild(el('span', { class: 'detail-input-label', text: it.label }));
+    c.appendChild(it.node);
+    row.appendChild(c);
+  });
+  box.appendChild(row);
+  if (tip) box.appendChild(el('div', { class: 'detail-tip', text: tip })); // 左下角提示
+  return box;
+}
+
+function renderAttrDetailPanel() {
+  const wrap = el('div', { class: 'attr-detail-panel' });
+  const dd = character.derivedDetail;
+  const base = derivedValues();
+  const bon = (arr) => (arr || []).reduce((s, b) => s + (Number(b) || 0), 0);
+  const bonusInputs = (arr, writeArr, recompute, featVal, featWrite) => {
+    const list = [];
+    if (featWrite) {
+      list.push({ label: '专长', node: detailNumber(Number(featVal) || 0, featWrite, recompute) });
+    }
+    for (let i = 0; i < 5; i++) {
+      const j = i;
+      list.push({ label: `加成${j + 1}`, node: detailNumber(arr[j], (v) => (writeArr[j] = v), recompute) });
+    }
+    return list;
+  };
+
+  const mv = () => base.movement + (Number(dd.movement.feat) || 0) + bon(dd.movement.bonus);
+  const it = () => base.initiative + (Number(dd.initiative.feat) || 0) + bon(dd.initiative.bonus);
+  const wp = () => base.willpower + (Number(dd.willpower.feat) || 0) + bon(dd.willpower.bonus);
+  const hp = () => base.health + (Number(dd.health.feat) || 0) + bon(dd.health.bonus);
+
+  wrap.appendChild(attrDetailBox('移动力', mv(), bonusInputs(dd.movement.bonus, dd.movement.bonus, mv, dd.movement.feat, (v) => (dd.movement.feat = v)), '5 + 力量检定 + 敏捷检定 + 传奇敏捷×3'));
+  wrap.appendChild(attrDetailBox('先攻值', it(), bonusInputs(dd.initiative.bonus, dd.initiative.bonus, it, dd.initiative.feat, (v) => (dd.initiative.feat = v)), '敏捷检定 + 沉着检定 + 传奇沉着×3'));
+  wrap.appendChild(attrDetailBox('意志力', wp(), [
+    { label: '传奇决心', node: el('span', { class: 'detail-static', text: attrLegendary('resolve') * 3 }) },
+    { label: '传奇沉着', node: el('span', { class: 'detail-static', text: attrLegendary('presence') }) },
+    { label: '专长', node: detailNumber(dd.willpower.feat, (v) => (dd.willpower.feat = v), wp) },
+    ...bonusInputs(dd.willpower.bonus, dd.willpower.bonus, wp),
+  ], '决心检定 + 沉着检定 + 传奇决心×3 + 传奇沉着'));
+  wrap.appendChild(attrDetailBox('生命值', hp(), bonusInputs(dd.health.bonus, dd.health.bonus, hp, dd.health.feat, (v) => (dd.health.feat = v)), '5 + 耐力检定 + 传奇耐力增值 ⌊N(N+1)/2⌋'));
+
+  return wrap;
+}
+
+// 通用「圆角外框 + 直角内表 + 左下提示」结构
+function tableBox(title, tableNode, tip = '', boxClass = '') {
+  const box = el('div', { class: 'detail-box' + (boxClass ? ' ' + boxClass : '') });
+  const head = el('div', { class: 'detail-box-head' });
+  head.appendChild(el('span', { class: 'detail-box-title', text: title }));
+  box.appendChild(head);
+  const scroll = el('div', { class: 'table-scroll' });
+  scroll.appendChild(tableNode);
+  box.appendChild(scroll);
+  if (tip) box.appendChild(el('div', { class: 'detail-tip', text: tip }));
+  return box;
+}
+
+// 豁免检定（参考 Excel「角色属性」A96-M105 与基础规则.docx）：每个豁免 = 表头行 + 值行，共 6 行
+const SAVE_DEFS = [
+  { name: '反射豁免', attr: 'dexterity', skill: 'athletics', attrName: '敏捷', skillName: '运动', legName: '传奇敏捷' },
+  { name: '意志豁免', attr: 'resolve', skill: 'empathy', attrName: '决心', skillName: '感受', legName: '传奇决心' },
+  { name: '强韧豁免', attr: 'stamina', skill: 'survival', attrName: '耐力', skillName: '求生', legName: '传奇耐力' },
+];
+
+// 单个豁免的「附加成功 m」= 技能附加成功 + 主属性传奇附加成功 + 附加成功加值(bonus+3..+5)
+function saveExtraSuccess(i) {
+  const dd = character.derivedDetail.saves;
+  return (
+    skillExtraSuccess(SAVE_DEFS[i].skill) + attrLegendary(SAVE_DEFS[i].attr) +
+    (Number(dd.bonus[i * 6 + 3]) || 0) + (Number(dd.bonus[i * 6 + 4]) || 0) +
+    (Number(dd.bonus[i * 6 + 5]) || 0)
+  );
+}
+
+// 单个豁免的「总计 n」（不含附加成功）：
+// 属性检定 + 技能检定 + 传奇属性×3 + 专业 + 专长 + 加成1..3
+function saveTotalOf(i) {
+  const s = SAVE_DEFS[i];
+  const dd = character.derivedDetail.saves;
+  return (
+    attrValue(s.attr) + skillValue(s.skill) + attrLegendary(s.attr) * 3 +
+    (Number(dd.special[i]) || 0) + (Number(dd.feat[i]) || 0) +
+    (Number(dd.bonus[i * 6]) || 0) + (Number(dd.bonus[i * 6 + 1]) || 0) +
+    (Number(dd.bonus[i * 6 + 2]) || 0)
+  );
+}
+
+// 豁免总值显示为「n+m」：n = 总计，m = 附加成功；m=0 时隐藏 +m
+function saveDisplayOf(i) {
+  return nm(saveTotalOf(i), saveExtraSuccess(i));
+}
+
+function renderSavesPanel() {
+  const dd = character.derivedDetail.saves;
+  const wrap = el('div', { class: 'attr-detail-panel save-detail-panel' });
+
+  SAVE_DEFS.forEach((s, i) => {
+    const recompute = () => saveDisplayOf(i);
+    const box = el('div', { class: 'detail-box save-detail-box detail-box-accent' });
+    const head = el('div', { class: 'detail-box-head' });
+    head.appendChild(el('span', { class: 'detail-box-title', text: s.name }));
+    box.appendChild(head);
+
+    const row = el('div', { class: 'detail-box-inputs' });
+    // 总值栏在左，值显示为「总计 + 附加成功」（n+m）
+    const tBlock = el('div', { class: 'detail-total-block' });
+    tBlock.appendChild(el('span', { class: 'detail-total-label', text: '总值' }));
+    tBlock.appendChild(el('span', { class: 'detail-box-total', text: recompute() }));
+    row.appendChild(tBlock);
+
+    // 专业 / 专长
+    row.appendChild(
+      el('label', { class: 'detail-input' }, [
+        el('span', { class: 'detail-input-label', text: '专业' }),
+        detailNumber(dd.special[i], (v) => (dd.special[i] = v), recompute),
+      ])
+    );
+    row.appendChild(
+      el('label', { class: 'detail-input' }, [
+        el('span', { class: 'detail-input-label', text: '专长' }),
+        detailNumber(dd.feat[i], (v) => (dd.feat[i] = v), recompute),
+      ])
+    );
+    // 加成1..3（并入总计 n）
+    for (let k = 0; k < 3; k++) {
+      const idx = i * 6 + k;
+      row.appendChild(
+        el('label', { class: 'detail-input' }, [
+          el('span', { class: 'detail-input-label', text: `加成${k + 1}` }),
+          detailNumber(dd.bonus[idx], (v) => (dd.bonus[idx] = v), recompute),
+        ])
+      );
+    }
+    // 竖线分隔 + 右侧附加成功加值（加值1/2/3，计入 m；横向排布与主体 input 对齐）
+    const esc = el('div', { class: 'detail-extra-succ' });
+    esc.appendChild(el('span', { class: 'detail-extra-succ-label', text: '附加成功' }));
+    for (let k = 3; k < 6; k++) {
+      const idx = i * 6 + k;
+      esc.appendChild(
+        el('label', { class: 'detail-input' }, [
+          el('span', { class: 'detail-input-label', text: `加值${k - 2}` }),
+          detailNumber(dd.bonus[idx], (v) => (dd.bonus[idx] = v), recompute),
+        ])
+      );
+    }
+    row.appendChild(esc);
+    box.appendChild(row);
+    // 灰色 tip：隐含 属性 + 技能 + 传奇属性×3（不单独展示列）
+    box.appendChild(el('div', { class: 'detail-tip', text: `${s.attrName}检定 + ${s.skillName}检定 + ${s.legName}×3` }));
+    wrap.appendChild(box);
+  });
+
+  return wrap;
+}
+
+// 防御（护甲来源 + 伤害减免）
+function renderDefensePanel() {
+  const wrap = el('div', { class: 'attr-detail-panel' });
+  const df = character.defense;
+
+  const armorBox = el('div', { class: 'detail-box detail-box-accent' }); // 护甲合计左侧小蓝条
+  const aHead = el('div', { class: 'detail-box-head' });
+  aHead.appendChild(el('span', { class: 'detail-box-title', text: '护甲合计' }));
+  armorBox.appendChild(aHead);
+  const aRow = el('div', { class: 'detail-box-inputs' });
+  // 总值栏移到最左侧（与其余派生值框一致）
+  const aTotal = el('div', { class: 'detail-total-block' });
+  aTotal.appendChild(el('span', { class: 'detail-total-label', text: '总值' }));
+  aTotal.appendChild(el('span', { class: 'detail-box-total', text: overviewArmorTotal() }));
+  aRow.appendChild(aTotal);
+  const armorKeys = [
+    ['innate', '天生'], ['base', '基础'], ['armor', '盔甲'],
+    ['block', '格挡'], ['insight', '洞察'], ['other', '其它'],
+  ];
+  armorKeys.forEach(([k, lab]) => {
+    const c = el('label', { class: 'detail-input' });
+    c.appendChild(el('span', { class: 'detail-input-label', text: lab }));
+    c.appendChild(numberInput({ value: df.armor[k], onChange: (v) => { df.armor[k] = v; refreshAttrDetail(); } }));
+    aRow.appendChild(c);
+  });
+  (df.armorBonus || []).forEach((b, i) => {
+    const c = el('label', { class: 'detail-input' });
+    c.appendChild(el('span', { class: 'detail-input-label', text: '加成' + (i + 1) }));
+    c.appendChild(numberInput({ value: b, onChange: (v) => { df.armorBonus[i] = v; refreshAttrDetail(); } }));
+    aRow.appendChild(c);
+  });
+  armorBox.appendChild(aRow);
+  wrap.appendChild(armorBox);
+
+  // 伤害减免：每行 = 类型 / 减免值 / 来源 的小输入框（各带名称）+ 最右侧删除
+  const redBox = el('div', { class: 'detail-box' });
+  const redHead = el('div', { class: 'detail-box-head' });
+  redHead.appendChild(el('span', { class: 'detail-box-title', text: '伤害减免' }));
+  redBox.appendChild(redHead);
+  const redList = el('div', { class: 'red-list' });
+  (df.reduction || []).forEach((r, i) => {
+    const row = el('div', { class: 'red-row' });
+    const typeC = el('label', { class: 'detail-input' });
+    typeC.appendChild(el('span', { class: 'detail-input-label', text: '类型' }));
+    const typeInp = textInput({ value: r.type, placeholder: '如 物理 / 能量', onChange: (v) => (r.type = v) });
+    typeInp.style.width = '150px';
+    typeC.appendChild(typeInp);
+    const amtC = el('label', { class: 'detail-input' });
+    amtC.appendChild(el('span', { class: 'detail-input-label', text: '减免值' }));
+    amtC.appendChild(numberInput({ value: r.amount, min: 0, onChange: (v) => (r.amount = v) }));
+    const srcC = el('label', { class: 'detail-input red-input-wide' });
+    srcC.appendChild(el('span', { class: 'detail-input-label', text: '来源' }));
+    const srcInp = textInput({ value: r.source, placeholder: '如 血统xx / 装备', onChange: (v) => (r.source = v) });
+    srcInp.style.width = '280px'; // 来源栏适当加大，便于填写来源说明
+    srcC.appendChild(srcInp);
+    row.appendChild(typeC);
+    row.appendChild(amtC);
+    row.appendChild(srcC);
+    row.appendChild(actionButton('删除', { action: 'remove-reduction', index: i }, 'btn-ghost red-op-btn'));
+    redList.appendChild(row);
+  });
+  redBox.appendChild(redList);
+  const redAdd = el('div', { class: 'add-bar add-bar-right' });
+  redAdd.appendChild(actionButton('添加减免', { action: 'add-reduction' }));
+  redBox.appendChild(redAdd);
+  wrap.appendChild(redBox);
+  return wrap;
+}
+
+// 基础攻击详细（参考豁免样式）：n+m 总值，属性/技能隐含于 tip，传奇可见，右侧附加成功加值(3)
+function renderBaseAttackDetail() {
+  const wrap = el('div', { class: 'attr-detail-panel' });
+  const attrName = (id) => (id === 'strength' ? '力量' : '敏捷');
+  const skillName = (id) => ({ weaponry: '白刃', brawl: '肉搏', firearms: '枪械', athletics: '运动' }[id] || id);
+
+  character.baseAttacks.forEach((atk) => {
+    const aN = attrName(atk.attr);
+    const sN = skillName(atk.skill);
+    const legN = `传奇${aN}`;
+
+    const recompute = () => {
+      const d = baseAttackData(atk);
+      return nm(d.checkDP, d.extraSuccess);
+    };
+    const box = el('div', { class: 'detail-box attack-detail' }); // 蓝绿左边框沿用 attack-detail
+    const head = el('div', { class: 'detail-box-head' });
+    head.appendChild(el('span', { class: 'detail-box-title', text: atk.label }));
+    box.appendChild(head);
+
+    const row = el('div', { class: 'detail-box-inputs' });
+    const tBlock = el('div', { class: 'detail-total-block' });
+    tBlock.appendChild(el('span', { class: 'detail-total-label', text: '总值' }));
+    tBlock.appendChild(el('span', { class: 'detail-box-total', text: recompute() }));
+    row.appendChild(tBlock);
+
+    // 传奇不隐含：单独展示（静态，自动计算）
+    row.appendChild(
+      el('label', { class: 'detail-input' }, [
+        el('span', { class: 'detail-input-label', text: legN }),
+        el('span', { class: 'detail-static', text: attrLegendary(atk.attr) }),
+      ])
+    );
+    // 武器伤害 / 专业 / 加成1..5 / 其他
+    const inp = (label, value, write) => {
+      row.appendChild(
+        el('label', { class: 'detail-input' }, [
+          el('span', { class: 'detail-input-label', text: label }),
+          detailNumber(value, write, recompute),
+        ])
+      );
+    };
+    if (atk.ammoCount != null) inp('弹药数', atk.ammoCount, (v) => (atk.ammoCount = v));
+    if (atk.ammoDamage != null) inp(atk.id === 'bow' ? '箭矢伤害' : '弹药伤害', atk.ammoDamage, (v) => (atk.ammoDamage = v));
+    inp('武器伤害', atk.weaponDamage, (v) => (atk.weaponDamage = v));
+    inp('专业', atk.specialty, (v) => (atk.specialty = v));
+    for (let i = 0; i < 5; i++) {
+      const j = i;
+      inp(`加成${i + 1}`, atk.bonuses[i], (v) => (atk.bonuses[j] = v));
+    }
+    inp('其他', atk.other, (v) => (atk.other = v));
+
+    // 竖线分隔 + 右侧附加成功加值（加值1/2/3，计入 m；横向排布与主体 input 对齐）
+    const esc = el('div', { class: 'detail-extra-succ' });
+    esc.appendChild(el('span', { class: 'detail-extra-succ-label', text: '附加成功' }));
+    for (let k = 0; k < 3; k++) {
+      const j = k;
+      esc.appendChild(
+        el('label', { class: 'detail-input' }, [
+          el('span', { class: 'detail-input-label', text: `加值${k + 1}` }),
+          detailNumber(atk.extraSuccessBonus[k], (v) => (atk.extraSuccessBonus[j] = v), recompute),
+        ])
+      );
+    }
+    row.appendChild(esc);
+    box.appendChild(row);
+
+    const d = baseAttackData(atk);
+    // 属性/技能隐含于 tip，传奇可见
+    box.appendChild(el('div', { class: 'detail-tip', text: `${aN}检定 + ${sN}检定 · 伤害上限 ${d.damageCap}` }));
+    wrap.appendChild(box);
+  });
+  return wrap;
+}
+
+// 敏感范围：仿派生值框（总计+加成小输入框 + 灰色 tip 隐藏属性引用）
+function renderSensitiveRangeDetail() {
+  const wrap = el('div', { class: 'attr-detail-panel' });
+  const dd = character.derivedDetail.sensitive;
+
+  const recompute = () =>
+    attrValue('perception') * 10 + attrLegendary('perception') * 20 +
+    (dd.bonus || []).reduce((s, b) => s + (Number(b) || 0), 0);
+
+  const box = el('div', { class: 'detail-box detail-box-accent' });
+  const head = el('div', { class: 'detail-box-head' });
+  head.appendChild(el('span', { class: 'detail-box-title', text: '敏感范围' }));
+  box.appendChild(head);
+
+  const row = el('div', { class: 'detail-box-inputs' });
+  const tBlock = el('div', { class: 'detail-total-block' });
+  tBlock.appendChild(el('span', { class: 'detail-total-label', text: '总值' }));
+  tBlock.appendChild(el('span', { class: 'detail-box-total', text: recompute() }));
+  row.appendChild(tBlock);
+  // 加成1..5
+  for (let k = 0; k < 5; k++) {
+    const j = k;
+    row.appendChild(
+      el('label', { class: 'detail-input' }, [
+        el('span', { class: 'detail-input-label', text: `加成${k + 1}` }),
+        detailNumber(dd.bonus[k], (v) => (dd.bonus[j] = v), recompute),
+      ])
+    );
+  }
+  box.appendChild(row);
+  // 灰色 tip：隐含 感知检定 / 传奇感知（不单独展示列）
+  box.appendChild(el('div', { class: 'detail-tip', text: '= 感知检定×10 + 传奇感知×20' }));
+  wrap.appendChild(box);
+  return wrap;
+}
+
+// 基因锁熟练度：独立加值表（总计 = min(基础 + 传奇风度, 10)）
+function renderGeneLockDetail() {
+  const wrap = el('div', { class: 'attr-detail-panel' });
+  const gene = () => Math.min((Number(character.geneLock) || 0) + attrLegendary('composure'), 10);
+  const table = el('table', { class: 'stats-table calc-table' });
+  const h = el('tr', { class: 'subhead-row' });
+  ['名称', '熟练度', '基础', '传奇风度'].forEach((t, idx) => h.appendChild(el('th', { text: t, class: idx === 0 ? '' : 'num-head' })));
+  table.appendChild(h);
+  const tr = el('tr');
+  tr.appendChild(el('td', { class: 'row-label', text: '基因锁熟练度' }));
+  tr.appendChild(el('td', { class: 'value-status', text: gene() }));
+  const baseTd = el('td', { class: 'base-col' });
+  baseTd.appendChild(numberInput({
+    value: character.geneLock,
+    max: 10,
+    onChange: (v, inp) => { character.geneLock = v; const row = inp.closest('tr'); if (row) row.querySelector('.value-status').textContent = Math.min(v + attrLegendary('composure'), 10); refreshAttrDetail(); },
+  }));
+  tr.appendChild(baseTd);
+  tr.appendChild(el('td', { class: 'calc-col', text: attrLegendary('composure') }));
+  table.appendChild(tr);
+  wrap.appendChild(tableBox('基因锁熟练度', table, '= min(基础 + 传奇风度, 10)'));
+  return wrap;
+}
+
+// 生命值（属性页）：状态点数 + 明细
+function renderHealthDetail() {
+  const hp = character.hpSlots;
+  const base = derivedValues();
+  const hpBox = el('div', { class: 'detail-box detail-box-accent' }); // 左侧小蓝条
+  const hHead = el('div', { class: 'detail-box-head' });
+  hHead.appendChild(el('span', { class: 'detail-box-title', text: '生命值点数' }));
+  hpBox.appendChild(hHead);
+  const r2 = el('div', { class: 'detail-box-inputs' });
+  // 总值栏移到最左侧（与其余派生值框一致）
+  const hpTotal = el('div', { class: 'detail-total-block' });
+  hpTotal.appendChild(el('span', { class: 'detail-total-label', text: '总值' }));
+  hpTotal.appendChild(el('span', { class: 'detail-box-total', text: base.health }));
+  r2.appendChild(hpTotal);
+  const hpField = (label, key) => {
+    const c = el('label', { class: 'detail-input' });
+    c.appendChild(el('span', { class: 'detail-input-label', text: label }));
+    // 完好默认值 = 总值（总值修改后同步变动）；其余状态点数照常
+    const init = key === 'intact' && (hp.intact || 0) === 0 ? base.health : hp[key];
+    const inp = numberInput({ value: init, onChange: (v) => (hp[key] = v) });
+    if (key === 'intact') inp._intactInput = true;
+    c.appendChild(inp);
+    return c;
+  };
+  r2.appendChild(hpField('完好', 'intact'));
+  r2.appendChild(hpField('冲击 B', 'b'));
+  r2.appendChild(hpField('严重 L', 'l'));
+  r2.appendChild(hpField('恶性 A', 'a'));
+  r2.appendChild(hpField('临时', 'temp'));
+  hpBox.appendChild(r2);
+  const wrap = el('div', { class: 'attr-detail-panel' });
+  wrap.appendChild(hpBox);
+  return wrap;
+}
+
+// 就地刷新激活 sheet 上的所有派生值合计（不重渲染，避免输入失焦）。
+function refreshAttrDetail() {
+  const host = document.querySelector('.sheet-body');
+  if (!host) return;
+  const bon = (arr) => (arr || []).reduce((s, b) => s + (Number(b) || 0), 0);
+  const dd = character.derivedDetail;
+  const base = derivedValues();
+
+  // 计算每个「圆角外框」合计值（按框标题）
+  const totalsByTitle = {
+    移动力: () => base.movement + (Number(dd.movement.feat) || 0) + bon(dd.movement.bonus),
+    先攻值: () => base.initiative + (Number(dd.initiative.feat) || 0) + bon(dd.initiative.bonus),
+    意志力: () => base.willpower + (Number(dd.willpower.feat) || 0) + bon(dd.willpower.bonus),
+    生命值: () => base.health + (Number(dd.health.feat) || 0) + bon(dd.health.bonus),
+    护甲合计: () => overviewArmorTotal(),
+    生命值点数: () => base.health,
+  };
+
+  host.querySelectorAll('.detail-box').forEach((box) => {
+    const titleEl = box.querySelector('.detail-box-title');
+    if (!titleEl) return;
+    const title = titleEl.textContent;
+
+    // 1) 有「总值栏」的外框（移动/先攻/意志/生命/护甲、生命值点数）
+    const totalEl = box.querySelector('.detail-box-total');
+    const fn = totalsByTitle[title];
+    if (totalEl && fn) totalEl.textContent = fn();
+
+    // 2) 豁免框（仿派生值样式）：更新总值栏「n+m」（n=总计，m=附加成功）
+    const saveIdx = SAVE_DEFS.findIndex((s) => s.name === title);
+    if (saveIdx >= 0) {
+      const svTotal = box.querySelector('.detail-box-total');
+      if (svTotal) svTotal.textContent = saveDisplayOf(saveIdx);
+    }
+
+    // 3) 敏感范围框（仿派生值样式）：总值 = 感知×10 + 传奇感知×20 + 加成；并同步「完好」输入跟随总值
+    if (title === '敏感范围') {
+      const d2 = box.querySelector('.detail-box-total');
+      const bon = (arr) => (arr || []).reduce((s, b) => s + (Number(b) || 0), 0);
+      if (d2) d2.textContent = attrValue('perception') * 10 + attrLegendary('perception') * 20 + bon(dd.sensitive.bonus);
+    }
+    if (title === '生命值点数') {
+      // 完好默认跟随总值（修改后变动）
+      const intactLab = [...box.querySelectorAll('.detail-input')].find((l) => l.querySelector('.detail-input-label') && l.querySelector('.detail-input-label')._text === '完好');
+      const intactInp = intactLab && intactLab.querySelector('input');
+      if (intactInp) intactInp.value = base.health;
+    }
+    if (title === '基因锁熟练度') {
+      const totalCell = box.querySelector('.value-status');
+      if (totalCell) totalCell.textContent = Math.min((Number(character.geneLock) || 0) + attrLegendary('composure'), 10);
+    }
+  });
+
+  // 4) 攻击框：更新 总值栏(n+m) + 底部提示（属性/技能隐含，伤害上限）
+  host.querySelectorAll('.detail-box.attack-detail').forEach((box) => {
+    const titleEl = box.querySelector('.detail-box-title');
+    const atk = character.baseAttacks.find((a) => a.label === titleEl.textContent);
+    const tipEl = box.querySelector('.detail-tip');
+    const totalEl = box.querySelector('.detail-box-total');
+    if (atk) {
+      const d = baseAttackData(atk);
+      const aN = (id) => (id === 'strength' ? '力量' : '敏捷');
+      const sN = (id) => ({ weaponry: '白刃', brawl: '肉搏', firearms: '枪械', athletics: '运动' }[id] || id);
+      if (tipEl) tipEl.textContent = `${aN(atk.attr)}检定 + ${sN(atk.skill)}检定 · 伤害上限 ${d.damageCap}`;
+      if (totalEl) totalEl.textContent = nm(d.checkDP, d.extraSuccess);
+    }
+  });
+}
+
+function renderAttrDetailSheet() {
+  const wrap = el('div', { class: 'sheet-panel' });
+  wrap.appendChild(section('属性加值', renderFullAttrTable()));
+  wrap.appendChild(section('技能加值', renderFullSkillTable()));
+  wrap.appendChild(section('生命值', renderHealthDetail()));
+  wrap.appendChild(section('属性细则（派生值）', renderAttrDetailPanel()));
+  wrap.appendChild(section('豁免检定', renderSavesPanel()));
+  wrap.appendChild(section('防御（护甲 / 伤害减免）', renderDefensePanel()));
+  wrap.appendChild(section('基础攻击方式', renderBaseAttackDetail()));
+  wrap.appendChild(section('敏感范围', renderSensitiveRangeDetail()));
+  wrap.appendChild(section('基因锁熟练度', renderGeneLockDetail()));
   return wrap;
 }
 
@@ -378,7 +1094,7 @@ function derivedValues() {
   const shape = (id) => Math.floor((leg(id) * (leg(id) + 1)) / 2); // N(N+1)/2
   return {
     health: 5 + attrValue('stamina') + shape('stamina'),
-    willpower: attrValue('resolve') + attrValue('presence') + tri('resolve'),
+    willpower: attrValue('resolve') + attrValue('presence') + tri('resolve') + leg('presence'),
     initiative: attrValue('dexterity') + attrValue('presence') + tri('presence'),
     movement: 5 + attrValue('strength') + attrValue('dexterity') + tri('dexterity'),
     reflex: attrValue('dexterity') + skillValue('athletics') + tri('dexterity'),
@@ -1036,6 +1752,7 @@ function renderSheetBody(host) {
   const active = sheetState.active;
 
   if (active === 'main') host.appendChild(renderMainSheet());
+  else if (active === 'attrs') host.appendChild(renderAttrDetailSheet());
   else if (active === 'spells') renderSpellTable(host);
   else if (active === 'attacks') renderAttackPanel(host);
   else if (active === 'energy') renderEnergyPanel(host);
@@ -1147,6 +1864,14 @@ function addRecordRow() {
   character.resources.records.push(newRecord());
   renderPage();
 }
+function addReductionRow() {
+  character.defense.reduction.push(newReduction());
+  renderPage();
+}
+function removeReductionRow(index) {
+  character.defense.reduction.splice(index, 1);
+  renderPage();
+}
 
 function deleteRow(kind, index) {
   if (kind === 'spell') character.spells.splice(index, 1);
@@ -1204,6 +1929,8 @@ function setupGlobalEvent() {
     else if (act === 'add-trait') addTraitRow();
     else if (act === 'add-purchase') addPurchaseRow();
     else if (act === 'add-record') addRecordRow();
+    else if (act === 'add-reduction') addReductionRow();
+    else if (act === 'remove-reduction') removeReductionRow(Number(btn.dataset.index));
     else if (act === 'toggle-perk-box') togglePerkBox(btn);
     else if (act === 'del-row') deleteRow(btn.dataset.kind, Number(btn.dataset.index));
   });

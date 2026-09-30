@@ -271,8 +271,9 @@ body {
   background: #fbfcfe;
 }
 .derived-label {
-  font-size: 13px;
-  color: var(--muted);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
 }
 .derived-value {
   font-size: 22px;
@@ -288,6 +289,374 @@ body {
   margin: 4px 0 0;
   font-size: 13px;
   color: var(--ink);
+}
+
+/* ---------- 总览：信息网格 / 攻击 / 生命 / 护甲 / 豁免 / 伤害减免 ---------- */
+/* 三列网格（属性 / 技能 / 派生 / 攻击 / 豁免 通用） */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.info-grid .derived-cell {
+  min-height: 82px;
+}
+/* 三豁免：限定一行三个 */
+.save-row {
+  grid-template-columns: repeat(3, 1fr);
+}
+/* 生命值单独模块 */
+.health-panel {
+  display: flex;
+}
+.health-panel .derived-cell {
+  min-width: 220px;
+  flex: 1 1 auto;
+}
+/* 生命值控制区：两个按钮+输入框（按钮左、输入框右，各占半行，尺寸适中） */
+.health-ctrl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  max-width: 340px;
+}
+.health-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 150px;
+  max-width: 165px;
+}
+.health-action .btn {
+  padding: 3px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.health-action input {
+  width: 56px;
+  min-width: 0;
+  padding: 3px 6px;
+  font-size: 12px;
+}
+/* 总览信息 => 其他信息 */
+.overview-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.overview-info .info-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+/* 防御信息：护甲 + 伤害减免移入 */
+.defense-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.defense-info .info-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+/* 派生值容器（意志/先攻/移动 + 三豁免） */
+.derived-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.derived-wrap .info-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+.save-head {
+  margin: 0;
+}
+/* 技能分区 */
+.skill-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.skill-category {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skill-group-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  padding-left: 8px;
+  border-left: 3px solid var(--accent);
+}
+.skill-grid {
+  gap: 10px;
+}
+.skill-grid .derived-cell {
+  min-height: 0;
+  padding: 8px 10px;
+}
+.skill-cell .derived-value {
+  font-size: 18px;
+}
+.skill-cell .derived-hint {
+  font-size: 11px;
+}
+/* 伤害减免：单行汇总 */
+.reduction-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+.reduction-label {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.reduction-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* ---------- 角色属性页：伤害减免编辑行 ---------- */
+.red-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.red-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.red-row:last-child {
+  border-bottom: none;
+}
+.red-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 110px;
+}
+.red-input-num input {
+  width: 84px;
+}
+.red-input-wide {
+  flex: 1 1 200px;
+  min-width: 150px;
+}
+.red-input input {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 15px;
+  box-sizing: border-box;
+}
+.red-row .btn-ghost {
+  margin-left: auto;
+}
+
+/* ---------- 角色属性页：细则 / 数据框 ---------- */
+.attr-detail-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.detail-box {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px 12px;
+}
+.detail-box-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.detail-total-block {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 84px;
+  padding: 4px 14px 4px 4px;
+  margin-right: 2px;
+  border-right: 1px solid var(--line);
+}
+.detail-total-label {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: left;
+}
+.detail-box-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.detail-box-total {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  text-align: left;
+}
+.detail-box-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+.detail-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 70px;
+}
+.detail-input-wide {
+  min-width: 140px;
+  flex: 1;
+}
+.detail-input input,
+.detail-input textarea,
+.detail-input .detail-static {
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.detail-input input {
+  width: 64px;
+}
+.detail-input-wide input,
+.detail-input textarea {
+  width: 100%;
+}
+.detail-input-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.detail-static {
+  background: #f4f6f8;
+  color: var(--ink);
+  display: inline-block;
+  width: 64px;      /* 与相邻可编辑输入框(.detail-input input)同宽 */
+  box-sizing: border-box;
+  text-align: center;
+  cursor: default;
+}
+.detail-totals {
+  font-size: 13px;
+  color: var(--muted);
+}
+.detail-totals .detail-static {
+  width: auto;
+  min-width: 0;
+  padding: 2px 8px;
+}
+.attack-detail {
+  border-left: 4px solid var(--accent);
+}
+/* 基础攻击：左侧加值 + 右侧附加效果栏 */
+.attack-body {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+}
+.attack-inputs {
+  flex: 1 1 auto;
+  align-content: flex-start;
+}
+.attack-effect {
+  flex: 0 0 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-left: 1px dashed var(--line);
+  padding-left: 14px;
+}
+.attack-effect-input {
+  flex: 1 1 auto;
+  min-height: 90px;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font: inherit;
+  font-size: 14px;
+}
+/* 计算表（敏感范围 / 基因锁 / 豁免表） */
+.calc-table {
+  width: 100%;
+  margin-top: 8px;
+}
+.save-table {
+  width: 100%;
+}
+/* 统一结构：圆角外框内嵌直角表 */
+.table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.detail-tip {
+  margin-top: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--muted);
+  background: #f4f6f8;
+  border-radius: 6px;
+}
+/* 表示属性的矩形外框：最左侧加一条蓝竖条（参照基础攻击方式 .attack-detail） */
+.detail-box-accent {
+  border-left: 4px solid var(--accent);
+}
+/* 加值区右侧竖线分隔的「附加成功加值」块（豁免 / 基础攻击共用）：
+   横向排列，加值输入框与主体输入框同一行对齐（不因标题文字下移错位） */
+.detail-extra-succ {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 6px 12px;
+  margin-left: 2px;
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+}
+/* 小字标题，与加值输入框纵向对齐（贴底，位于输入框 label 高度层） */
+.detail-extra-succ-label {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+/* 属性/技能表格按 生理/心智/互动 三系分组的标题行 */
+.group-row .group-label {
+  text-align: left;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  background: #f2f6fc;
+  padding: 5px 10px;
+  letter-spacing: 1px;
+}
+.subhead-row th {
+  background: #eef1f4;
+}
+/* 伤害减免：来源栏加大（flex 行内弹性）、删除按钮紧凑 */
+.red-op-btn {
+  padding: 3px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
 }
 .stats-table th,
 .stats-table td,
@@ -745,5 +1114,36 @@ body {
   }
   .concept-field.span-3 {
     grid-column: span 1;
+  }
+  .derived-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+  .save-row {
+    grid-template-columns: 1fr;
+  }
+  .skill-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .overview-info .info-grid,
+  .derived-wrap .info-grid,
+  .defense-info .info-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .detail-input {
+    flex: 1 1 96px;
+    min-width: 84px;
+  }
+  .detail-input input {
+    width: 100%;
+  }
+  .stats-table {
+    min-width: 0;
+  }
+  .sheet-body .stats-table {
+    display: block;
+    overflow-x: auto;
   }
 }
