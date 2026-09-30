@@ -184,40 +184,63 @@ body {
   padding-left: 10px;
 }
 
-/* ---------- 概念段 ---------- */
+/* ---------- 概念段 ----------
+   参考 Excel「角色主体信息」：短字段三列一行，外貌/背景整行横跨 */
 .concept-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px 24px;
 }
 .concept-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  min-width: 0;
 }
-.concept-field.span-2 {
-  grid-column: span 2;
+.concept-field.span-3 {
+  grid-column: span 3;
 }
 .field-label {
   font-size: 13px;
   color: var(--muted);
+  line-height: 1.4;
 }
-.concept-field input,
-.concept-field textarea {
-  padding: 8px 10px;
+/* 单行输入框：占满整列（覆盖 JS 自动收缩的 inline width），保留边界盒 */
+.concept-field input {
+  width: 100% !important;
+  min-height: 44px;
+  padding: 10px 14px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
   font: inherit;
-  width: 100%;
+  font-size: 16px;
+  line-height: 1.4;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
+/* 多行文本框：整行宽度，高度更充裕，可纵向拉伸 */
 .concept-field textarea {
-  min-height: 72px;
+  width: 100% !important;
+  min-height: 110px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+  box-sizing: border-box;
   resize: vertical;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 .concept-field input:focus,
 .concept-field textarea:focus {
-  outline: 2px solid var(--accent-weak);
+  outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-weak);
 }
 
 /* ---------- 属性 / 技能表 ---------- */
@@ -225,6 +248,46 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+}
+
+/* ---------- 派生值面板 ---------- */
+.derived-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.derived-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.derived-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+.derived-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+.derived-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.derived-hint {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.derived-subhead {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--ink);
 }
 .stats-table th,
 .stats-table td,
@@ -347,6 +410,10 @@ body {
   color: var(--muted);
   font-size: 13px;
 }
+/* 无提示词、仅按钮的添加栏：按钮靠右 */
+.add-bar-right {
+  justify-content: flex-end;
+}
 .dyn-table {
   width: 100%;
   border-collapse: collapse;
@@ -357,25 +424,81 @@ body {
   font-size: 13px;
 }
 .name-col {
-  min-width: 110px;
+  min-width: 120px;
 }
 .name-col input {
   text-align: left;
-  width: 100%;
-  padding: 4px 6px;
+  width: 100% !important; /* 覆盖 JS 自动收缩，占满列宽 */
+  padding: 8px 10px;
+  font-size: 14px;
+  line-height: 1.4;
+  box-sizing: border-box;
 }
 .dyn-table input[type='text'] {
-  padding: 4px 6px;
+  padding: 6px 8px;
+}
+
+/* ---------- 各页面 名称/内容 列宽定制 ----------
+   说明：`.name-col` 为窄列（名称/价格/数量等），`.effect-col` 为宽列（备注/内容/来源等）。
+   特殊攻击与能量池：名称保持同一固定宽度（两者一致）。
+   专长/装备/特性 与 资源：名称比描述/内容窄，把部分空间让给宽列，同时保持适中的名称宽度。 */
+.tbl-atk .name-col,
+.tbl-ene .name-col {
+  min-width: 104px;
+  max-width: 104px;
+}
+/* 专长/装备/特性：名称比描述窄（120px→72px），让空间给宽列；
+   特性来源略大一点（80px） */
+.tbl-perk .name-col,
+.tbl-gear .name-col {
+  width: 72px;
+  max-width: 72px;
+}
+.tbl-trait .name-col {
+  width: 96px;
+  max-width: 96px;
+}
+.tbl-perk .tier-col {
+  width: 64px;
+  max-width: 64px;
+}
+.tbl-gear .slot-col {
+  width: 88px;
+  max-width: 88px;
+}
+/* 资源：价格/数量固定窄列，购买内容/来源占满剩余 */
+.tbl-buy .name-col,
+.tbl-rec .name-col {
+  width: 104px;
+  max-width: 104px;
+}
+/* 让这些页面的宽列真正吸收剩余空间 */
+.tbl-perk .effect-col,
+.tbl-gear .effect-col,
+.tbl-trait .effect-col,
+.tbl-buy .effect-col,
+.tbl-rec .effect-col {
+  width: auto;
 }
 .effect-col textarea,
 .effect-col input[type='text'] {
   width: 100%;
   text-align: left;
 }
-.effect-col textarea {
-  min-height: 38px;
+.effect-col input[type='text'] {
+  width: 100% !important; /* 覆盖 JS 自动收缩，占满列宽 */
+  padding: 6px 8px;
+  box-sizing: border-box;
+}
+.effect-col textarea,
+.dyn-table textarea {
+  width: 100% !important; /* 覆盖 JS 自动收缩，占满列宽 */
+  min-height: 72px;
   resize: vertical;
-  padding: 4px 6px;
+  padding: 8px 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  box-sizing: border-box;
 }
 .del-col {
   width: 40px;
@@ -400,6 +523,143 @@ body {
   color: var(--muted);
   font-size: 13px;
   font-style: italic;
+}
+
+/* ---------- 计算摘要框（施法基础检定 / 专长核算） ---------- */
+.spell-base-box {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  background: var(--accent-weak);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+.spell-base-title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: var(--ink);
+}
+.spell-base-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 14px;
+}
+.spell-base-item {
+  color: #3c444d;
+}
+.spell-base-op {
+  color: var(--muted);
+  font-weight: 600;
+}
+.spell-base-total {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.spell-base-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* 折叠核算框（专长建卡核算） */
+.collapse-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.collapse-head .spell-base-title {
+  margin-bottom: 0;
+}
+.collapse-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  width: 30px;
+  height: 28px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+}
+.collapse-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.collapse-body.hidden {
+  display: none;
+}
+
+/* 施法基础检定栏（法术列表顶部，样式与动态表统一） */
+.spell-base-card {
+  margin-bottom: 12px;
+}
+.spell-base-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  border-left: 4px solid var(--accent);
+  padding-left: 8px;
+}
+.spell-base-table {
+  max-width: 480px;
+}
+.spell-base-table th {
+  background: #f7f8fa;
+}
+.spell-base-table .total-cell {
+  font-size: 15px;
+}
+.spell-base-table input:disabled {
+  background: #eef1f4;
+  color: #3c444d;
+  cursor: default;
+}
+
+/* 副标题（资源面板） */
+.sub-title {
+  font-size: 15px;
+  margin: 18px 0 8px;
+  border-left: 3px solid var(--accent);
+  padding-left: 8px;
+}
+
+/* 宽表（法术较多列时横向滚动） */
+.dyn-table-wide {
+  display: block;
+  overflow-x: auto;
+}
+.dyn-table-wide td,
+.dyn-table-wide th {
+  white-space: nowrap;
+}
+
+/* 未使用资源 */
+.resource-leftover {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.leftover-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.leftover-field input {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+}
+
+/* 基础值单元格（只读，随施法基础检定变化） */
+.base-value-cell {
+  color: var(--accent);
+  font-weight: 600;
+  background: #fbfcff;
 }
 
 /* ---------- 操作条 & 按钮 ---------- */
@@ -480,7 +740,10 @@ body {
   .sidebar {
     --sidebar-w: 176px;
   }
-  .concept-field.span-2 {
+  .concept-grid {
+    grid-template-columns: 1fr;
+  }
+  .concept-field.span-3 {
     grid-column: span 1;
   }
 }

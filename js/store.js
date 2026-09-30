@@ -42,7 +42,6 @@ function emptyCharacter() {
       race: '',
       age: '',
       build: '', // 身高体重
-      motherTongue: '',
       appearance: '',
       background: '',
       totalResources: '', // 总资源量
@@ -51,19 +50,33 @@ function emptyCharacter() {
     skills: skills,
     // —— 可动态增删行的列表（在角色卡内用「表单切换」切换）——
     spells: [], // 法术列表 & 法术预设
+    spellBaseBonuses: [0, 0, 0, 0, 0, 0], // 施法基础检定栏的 6 个加成位
     specialAttacks: [], // 特殊攻击预设
     energyPools: [], // 能量池
-    // —— 以下为「预留扩展」占位，未来按需填充 ——
+    perks: [], // 专长列表
+    equipment: [], // 装备位（特性已独立到 traits）
+    traits: [], // 特性列表（来源 / 描述）
+    resources: {
+      purchases: [], // 资源消耗统计（价格 / 内容）
+      leftover: { d: '', score: '', xp: '' }, // 未使用资源（支线/分数/xp）
+      records: [], // 资源获取记录（数量 / 来源）
+    },
+    // —— 预留 ——
     derived: {}, // 未来：生命值 / 意志 / 先攻 / 移动力 / 豁免等
-    perks: [], // 未来：专长
-    equipment: [], // 未来：装备位 & 特性
-    resources: {}, // 未来：资源统计
   };
 }
 
 /** 可动态增删行的「新行」默认结构。 */
 function newSpell() {
-  return { name: '法术', potency: 0, cost: 0, specialty: 0, bonuses: [0, 0, 0, 0, 0, 0], effect: '' };
+  return {
+    name: '法术',
+    potency: 0, // 法术威力
+    cost: 0, // 耗能
+    specialty: 0, // 专业
+    bonuses: [0, 0, 0, 0, 0, 0], // 检定加成 1..6
+    dmgBonuses: [0, 0, 0], // 伤害上限加成列表（额外）
+    effect: '',
+  };
 }
 function newAttack() {
   return {
@@ -77,7 +90,22 @@ function newAttack() {
   };
 }
 function newEnergyPool() {
-  return { name: '能量池', attr1: 'intelligence', attr2: '', bonus: 0, recovery: '' };
+  return { name: '能量池', attr1: 'intelligence', attr2: '', bonuses: [0, 0, 0], recovery: '' };
+}
+function newPerk() {
+  return { tier: 1, name: '', info: '' };
+}
+function newEquipment() {
+  return { slot: '其它', name: '', effect: '' };
+}
+function newTrait() {
+  return { source: '', desc: '' };
+}
+function newPurchase() {
+  return { price: '', content: '' };
+}
+function newRecord() {
+  return { amount: '', source: '' };
 }
 
 // 简单的深合并：用外来的已保存数据覆盖默认空角色。
@@ -90,8 +118,16 @@ function normalize(raw) {
   if (raw.attributes) merged.attributes = { ...empty.attributes, ...raw.attributes };
   if (raw.skills) merged.skills = { ...empty.skills, ...raw.skills };
   if (!Array.isArray(merged.spells)) merged.spells = [];
+  if (!Array.isArray(merged.spellBaseBonuses)) merged.spellBaseBonuses = [0, 0, 0, 0, 0, 0];
   if (!Array.isArray(merged.specialAttacks)) merged.specialAttacks = [];
   if (!Array.isArray(merged.energyPools)) merged.energyPools = [];
+  if (!Array.isArray(merged.perks)) merged.perks = [];
+  if (!Array.isArray(merged.equipment)) merged.equipment = [];
+  if (!Array.isArray(merged.traits)) merged.traits = [];
+  if (!merged.resources || typeof merged.resources !== 'object') merged.resources = empty.resources;
+  if (!Array.isArray(merged.resources.purchases)) merged.resources.purchases = [];
+  if (!Array.isArray(merged.resources.records)) merged.resources.records = [];
+  if (!merged.resources.leftover) merged.resources.leftover = empty.resources.leftover;
   return merged;
 }
 
@@ -137,4 +173,4 @@ function loadFromStorage() {
   }
 }
 
-export { emptyCharacter, normalize, newSpell, newAttack, newEnergyPool, api, STORAGE_KEY };
+export { emptyCharacter, normalize, newSpell, newAttack, newEnergyPool, newPerk, newEquipment, newTrait, newPurchase, newRecord, api, STORAGE_KEY };
