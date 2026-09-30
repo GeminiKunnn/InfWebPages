@@ -153,13 +153,24 @@ function attrsOf(attrId) {
   return character.attributes[attrId];
 }
 
+/*
+ * 属性两档（对照 Excel 角色属性信息表，列：属性/属性值/传奇/基础/内在/修行/内在/器械/完美/其它/其它/检定值）：
+ *   属性值 attrPool  = 基础 + 内在 + 修行
+ *   检定值 attrValue = 属性值 + 内在(第二) + 器械 + 完美 + 其它 + 其它
+ *   传奇   = ⌊(属性值 - 1) / 5⌋
+ */
+function attrPool(attrId) {
+  const a = attrsOf(attrId);
+  return (a.base || 0) + (a.inner || 0) + (a.practice || 0);
+}
+
 function attrValue(attrId) {
   const a = attrsOf(attrId);
-  return (a.base || 0) + a.inner + a.practice + a.gear + a.perfect + a.other;
+  return attrPool(attrId) + (a.inner2 || 0) + (a.gear || 0) + (a.perfect || 0) + (a.other || 0) + (a.other2 || 0);
 }
 
 function attrLegendary(attrId) {
-  return Math.floor((attrValue(attrId) - 1) / 5);
+  return Math.floor((attrPool(attrId) - 1) / 5);
 }
 
 /* ------------------------- 属性表格渲染 ------------------------- */
@@ -167,9 +178,11 @@ function attrLegendary(attrId) {
 const ATTR_BONUSES = [
   { key: 'inner', label: '内在' },
   { key: 'practice', label: '修行' },
+  { key: 'inner2', label: '内在' },
   { key: 'gear', label: '器械' },
   { key: 'perfect', label: '完美' },
   { key: 'other', label: '其它' },
+  { key: 'other2', label: '其它' },
 ];
 
 function renderAttrRow(attr) {
@@ -179,7 +192,7 @@ function renderAttrRow(attr) {
   const value = attrValue(attr.id);
 
   tr.appendChild(el('td', { class: 'row-label', text: attr.label }));
-  tr.appendChild(el('td', { class: 'value-status', text: value }));
+  tr.appendChild(el('td', { class: 'value-status', text: attrPool(attr.id) }));
   tr.appendChild(el('td', { class: 'legendary-cell', text: attrLegendary(attr.id) }));
 
   const baseTd = el('td', { class: 'base-col' });
@@ -220,9 +233,9 @@ function renderAttrRow(attr) {
 
 function refreshAttrRow(tr) {
   const id = tr.dataset.attrId;
-  tr.children[1].textContent = attrValue(id);
+  tr.children[1].textContent = attrPool(id);   // 属性值 = 基础+内在+修行
   tr.children[2].textContent = attrLegendary(id);
-  tr.children[tr.children.length - 1].textContent = attrValue(id);
+  tr.children[tr.children.length - 1].textContent = attrValue(id); // 检定值 = 属性值+器械+完美+其它
 }
 
 /* ------------------------- 技能表格渲染 ------------------------- */
@@ -544,15 +557,15 @@ function renderMainSheet() {
 
 /* ------------------------- 【角色属性】面板（详细） ------------------------- */
 
-// 属性完整列（含加值栏）：属性 / 属性值 / 传奇 / 基础 / 内在 / 修行 / 器械 / 完美 / 其它 / 检定值
+// 属性完整列（含加值栏）：属性 / 属性值 / 传奇 / 基础 / 内在 / 修行 / 内在 / 器械 / 完美 / 其它 / 其它 / 检定值
 // 按 生理/心智/互动 三系分组展示（参考角色卡 Excel 与基础规则.docx）
 function renderFullAttrTable() {
   const table = el('table', { class: 'stats-table' });
-  table.appendChild(renderTitleRow(['属性', '属性值', '传奇', '基础', '内在', '修行', '器械', '完美', '其它', '检定值']));
+  table.appendChild(renderTitleRow(['属性', '属性值', '传奇', '基础', '内在', '修行', '内在', '器械', '完美', '其它', '其它', '检定值']));
   GROUPS.forEach((g) => {
     const items = ATTRIBUTES.filter((a) => a.group === g);
     if (!items.length) return;
-    table.appendChild(renderGroupRow(`${g}系`, 10));
+    table.appendChild(renderGroupRow(`${g}系`, 12));
     items.forEach((a) => table.appendChild(renderAttrRow(a)));
   });
   return table;
@@ -906,7 +919,7 @@ function renderSensitiveRangeDetail() {
   const dd = character.derivedDetail.sensitive;
 
   const recompute = () =>
-    attrValue('perception') * 10 + attrLegendary('perception') * 20 +
+    attrPool('perception') * 10 + attrLegendary('perception') * 20 +
     (dd.bonus || []).reduce((s, b) => s + (Number(b) || 0), 0);
 
   const box = el('div', { class: 'detail-box detail-box-accent' });
@@ -1034,7 +1047,7 @@ function refreshAttrDetail() {
     if (title === '敏感范围') {
       const d2 = box.querySelector('.detail-box-total');
       const bon = (arr) => (arr || []).reduce((s, b) => s + (Number(b) || 0), 0);
-      if (d2) d2.textContent = attrValue('perception') * 10 + attrLegendary('perception') * 20 + bon(dd.sensitive.bonus);
+      if (d2) d2.textContent = attrPool('perception') * 10 + attrLegendary('perception') * 20 + bon(dd.sensitive.bonus);
     }
     if (title === '生命值点数') {
       // 完好默认跟随总值（修改后变动）
@@ -1093,10 +1106,12 @@ function derivedValues() {
   const tri = (id) => leg(id) * 3;
   const shape = (id) => Math.floor((leg(id) * (leg(id) + 1)) / 2); // N(N+1)/2
   return {
-    health: 5 + attrValue('stamina') + shape('stamina'),
-    willpower: attrValue('resolve') + attrValue('presence') + tri('resolve') + leg('presence'),
-    initiative: attrValue('dexterity') + attrValue('presence') + tri('presence'),
-    movement: 5 + attrValue('strength') + attrValue('dexterity') + tri('dexterity'),
+    // 移动力/先攻值/意志力/生命值：按 Excel 用「属性值」(基础+内在+修行)
+    health: 5 + attrPool('stamina') + shape('stamina'),
+    willpower: attrPool('resolve') + attrPool('presence') + tri('resolve') + leg('presence'),
+    initiative: attrPool('dexterity') + attrPool('presence') + tri('presence'),
+    movement: 5 + attrPool('strength') + attrPool('dexterity') + tri('dexterity'),
+    // 豁免：按 Excel 用「检定值」(属性值+器械+完美+其它)
     reflex: attrValue('dexterity') + skillValue('athletics') + tri('dexterity'),
     willSave: attrValue('resolve') + skillValue('empathy') + tri('resolve'),
     fortitude: attrValue('stamina') + skillValue('survival') + tri('stamina'),

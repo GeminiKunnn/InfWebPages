@@ -22,8 +22,8 @@ const STORAGE_KEY = 'infrole.character.v1';
 function emptyCharacter() {
   const attrs = {};
   ATTRIBUTES.forEach((a) => {
-    // 每个属性：base 即建卡时填写的基础值，其余加值栏预留给后续扩展。
-    attrs[a.id] = { base: a.default, inner: 0, practice: 0, gear: 0, perfect: 0, other: 0 };
+    // 每个属性两档：属性值(基础+内在+修行) / 检定值(属性值+内在2+器械+完美+其它+其它2)
+    attrs[a.id] = { base: a.default, inner: 0, practice: 0, inner2: 0, gear: 0, perfect: 0, other: 0, other2: 0 };
   });
 
   const skills = {};
@@ -143,7 +143,14 @@ function normalize(raw) {
 
   const merged = { ...empty, ...raw };
   if (raw.concepts) merged.concepts = { ...empty.concepts, ...raw.concepts };
-  if (raw.attributes) merged.attributes = { ...empty.attributes, ...raw.attributes };
+  if (raw.attributes) {
+    merged.attributes = { ...empty.attributes };
+    ATTRIBUTES.forEach((a) => {
+      if (raw.attributes[a.id] && typeof raw.attributes[a.id] === 'object') {
+        merged.attributes[a.id] = { ...empty.attributes[a.id], ...raw.attributes[a.id] };
+      }
+    });
+  }
   if (raw.skills) merged.skills = { ...empty.skills, ...raw.skills };
   if (!Array.isArray(merged.spells)) merged.spells = [];
   if (!Array.isArray(merged.spellBaseBonuses)) merged.spellBaseBonuses = [0, 0, 0, 0, 0, 0];

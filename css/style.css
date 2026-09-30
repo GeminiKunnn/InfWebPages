@@ -496,7 +496,8 @@ body {
   border-right: 1px solid var(--line);
 }
 .detail-total-label {
-  font-size: 12px;
+  font-size: 15px;          /* 对齐总览页 derived-label(15px) */
+  font-weight: 700;
   color: var(--muted);
   text-align: left;
 }
@@ -505,7 +506,7 @@ body {
   font-weight: 600;
 }
 .detail-box-total {
-  font-size: 20px;
+  font-size: 22px;          /* 对齐总览页 derived-value(22px) */
   font-weight: 700;
   color: var(--accent);
   text-align: left;
@@ -679,7 +680,7 @@ body {
 }
 .row-label {
   text-align: left;
-  font-weight: 500;
+  font-weight: 700; /* 属性名/技能名加粗 */
 }
 
 /* 数字输入 / 下拉 / 文本输入 的通用样式 */
