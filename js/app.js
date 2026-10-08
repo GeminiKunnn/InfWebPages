@@ -38,8 +38,8 @@ import {
 /** 单一状态对象，引用自 store，UI 与它双向同步。 */
 let character = emptyCharacter();
 
-/** 应用级导航状态：screen=界面层（landing 主页面 / app 应用界面）；page=应用内页面（规则书/角色卡/其他）。 */
-const appState = { screen: 'landing', page: 'character' };
+/** 应用级导航状态：screen=界面层（landing 主页面 / app 应用界面）；page=应用内页面（角色管理/角色卡/规则书/其他）。 */
+const appState = { screen: 'landing', page: 'characters', activeChar: null };
 
 /** 角色卡内部「表单（sheet）切换」：当前激活的子面板。 */
 const sheetState = { active: 'main' };
@@ -47,7 +47,7 @@ const sheetState = { active: 'main' };
 /* ---------- 各可切换页面（底部菜单）与角色卡子面板（sheet 标签）的定义 ---------- */
 
 const PAGES = [
-  { id: 'character', label: '角色卡' },
+  { id: 'characters', label: '角色管理' },
   { id: 'rules', label: '规则书' },
   { id: 'other', label: '其他' },
 ];
@@ -1788,11 +1788,19 @@ function renderCharacterPage() {
   app.innerHTML = '';
 
   app.appendChild(
-    el('header', { class: 'masthead' }, [
-      el('h1', { text: '鲲版无限角色卡' }),
-      el('p', {
-        class: 'subtitle',
-        text: '目前正在测试中，仅用于UI展示',
+    el('div', { class: 'char-head' }, [
+      el('header', { class: 'masthead' }, [
+        el('h1', { text: '鲲版无限角色卡' }),
+        el('p', {
+          class: 'subtitle',
+          text: '目前正在测试中，仅用于UI展示',
+        }),
+      ]),
+      el('button', {
+        type: 'button',
+        class: 'char-back',
+        dataset: { action: 'back-to-characters' },
+        text: '← 返回角色管理',
       }),
     ])
   );
@@ -1831,6 +1839,10 @@ function renderOtherPage() {
   renderEmptyPage('其他', '预留页面，暂无内容。');
 }
 
+function renderRealmPage() {
+  renderEmptyPage('轮回之境', '轮回之境页面预留，后续开发：游戏组 / 房间 / 多单位施效等。');
+}
+
 /* ------------------------- 主页面（landing） ------------------------- */
 
 /** 主页面：入口欢迎页。应用界面由「进入」按钮进入。 */
@@ -1860,6 +1872,80 @@ function toggleSidebarForScreen() {
   sidebar.classList.toggle('hidden', appState.screen === 'landing');
 }
 
+/* ------------------------- 角色管理（characters） ------------------------- */
+
+/** 占位角色清单：后端就绪前用假数据（角色A-F，总资源量 / 生命值 / 归属房间）。 */
+function placeholderCharacters() {
+  const rows = [
+    { resource: '11D+13000', hp: '10+1L+1A', room: '房间1234' },
+    { resource: '9D+9000', hp: '7+5L', room: '房间1235' },
+    { resource: '12D+15000', hp: '12+2L+2A', room: '房间1236' },
+    { resource: '8D+7000', hp: '6+1L', room: '房间1234' },
+    { resource: '10D+11000', hp: '11+3L', room: '房间1237' },
+    { resource: '13D+18000', hp: '9+4L+1A', room: '房间1235' },
+  ];
+  return rows.map((r, i) => ({
+    id: 'C' + (i + 1),
+    name: '角色' + String.fromCharCode(65 + i), // 角色A-F
+    resource: r.resource,
+    hp: r.hp,
+    room: r.room,
+  }));
+}
+
+/**
+ * 渲染「角色管理」页面：按行展示拥有的角色卡（占位数据）。
+ * 点击行 → 打开对应角色卡；右下角悬浮「+」新建按钮。
+ */
+function renderCharactersPage() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+
+  app.appendChild(
+    el('header', { class: 'masthead' }, [
+      el('h1', { text: '角色管理' }),
+      el('p', { class: 'subtitle', text: '选择要打开的角色卡，或新建一个角色' }),
+    ])
+  );
+
+  const chars = placeholderCharacters();
+  const list = el('div', { class: 'char-list' });
+  chars.forEach((c) => {
+    const row = el('button', { type: 'button', class: 'char-row', dataset: { charId: c.id } }, [
+      el('span', { class: 'char-name', text: c.name }),
+      el('div', { class: 'char-meta' }, [
+        el('span', { class: 'char-kv' }, [
+          el('em', { class: 'char-kv-label', text: '总资源' }),
+          el('span', { class: 'char-resource', text: c.resource }),
+        ]),
+        el('span', { class: 'char-kv' }, [
+          el('em', { class: 'char-kv-label', text: '生命值' }),
+          el('span', { class: 'char-hp', text: c.hp }),
+        ]),
+        el('span', { class: 'char-kv' }, [
+          el('em', { class: 'char-kv-label', text: '归属房间' }),
+          el('span', { class: 'char-room', text: c.room }),
+        ]),
+      ]),
+      el('span', { class: 'char-open', text: '点击查看' }),
+    ]);
+    list.appendChild(row);
+  });
+  app.appendChild(list);
+  app.appendChild(el('div', { class: 'char-empty-note', text: '（以上为占位数据仅作展示）' }));
+
+  // 右下角悬浮「新建角色」按钮
+  const fab = el('button', {
+    type: 'button',
+    class: 'fab',
+    dataset: { action: 'new-character' },
+    title: '新建角色',
+    ariaLabel: '新建角色',
+  });
+  fab.appendChild(el('span', { class: 'fab-plus', text: '+' }));
+  app.appendChild(fab);
+}
+
 /* ------------------------- 应用级页面路由 ------------------------- */
 
 function renderPage() {
@@ -1871,14 +1957,17 @@ function renderPage() {
     return;
   }
 
-  // 高亮左侧菜单
+  // 高亮左侧菜单（查看单个角色卡时高亮「角色管理」）
+  const menuKey = appState.page === 'character' ? 'characters' : appState.page;
   document.querySelectorAll('.menu-item').forEach((btn) => {
-    btn.classList.toggle('active', btn.dataset.page === appState.page);
+    btn.classList.toggle('active', btn.dataset.page === menuKey);
   });
 
-  if (appState.page === 'character') renderCharacterPage();
+  if (appState.page === 'characters') renderCharactersPage();
+  else if (appState.page === 'character') renderCharacterPage();
   else if (appState.page === 'rules') renderRulesPage();
   else if (appState.page === 'other') renderOtherPage();
+  else if (appState.page === 'realm') renderRealmPage();
 }
 
 /* ------------------------- 侧边栏折叠 / 交互 ------------------------- */
@@ -2002,6 +2091,29 @@ function setupGlobalEvent() {
       return;
     }
 
+    // 角色管理：点击某行 → 打开对应角色卡（占位，后续从后端取数据）
+    const charRow = e.target.closest('.char-row');
+    if (charRow) {
+      appState.activeChar = charRow.dataset.charId;
+      appState.page = 'character';
+      renderPage();
+      return;
+    }
+
+    // 新建角色（占位：仅提示，接入后端后调用创建接口）
+    if (e.target.closest('[data-action="new-character"]')) {
+      flash('新建角色（当前为占位，接入后端后生效）');
+      return;
+    }
+
+    // 角色详情页右上角「返回角色管理」
+    if (e.target.closest('[data-action="back-to-characters"]')) {
+      appState.activeChar = null;
+      appState.page = 'characters';
+      renderPage();
+      return;
+    }
+
     const tab = e.target.closest('[data-action="set-sheet"]');
     if (tab) {
       sheetState.active = tab.dataset.sheet;
@@ -2057,6 +2169,7 @@ async function boot() {
 
   // 打开网页默认进入主页面（landing），由用户点击「进入」再到应用界面。
   appState.screen = 'landing';
+  appState.page = 'characters';
   renderPage();
   setupGlobalEvent();
 }

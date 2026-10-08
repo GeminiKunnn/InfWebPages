@@ -46,9 +46,13 @@
           <span class="menu-icon">📖</span>
           <span class="menu-text">规则书</span>
         </button>
-        <button type="button" class="menu-item" data-page="character">
+        <button type="button" class="menu-item" data-page="characters">
           <span class="menu-icon">🧾</span>
-          <span class="menu-text">角色卡</span>
+          <span class="menu-text">角色管理</span>
+        </button>
+        <button type="button" class="menu-item" data-page="realm">
+          <span class="menu-icon">🌀</span>
+          <span class="menu-text">轮回之境</span>
         </button>
         <button type="button" class="menu-item" data-page="other">
           <span class="menu-icon">➕</span>
@@ -59,9 +63,8 @@
       <!-- 用户信息（点击展开下拉：登出 / 版本，暂为界面） -->
       <div class="user-box" id="user-box">
         <button type="button" class="user-trigger" data-action="toggle-user-menu" title="账户">
-          <span class="user-avatar">▲</span>
           <span class="user-name" id="user-name">未登录</span>
-          <span class="user-caret">▾</span>
+          <span class="user-caret">▲</span>
         </button>
         <div class="user-menu" id="user-menu" hidden>
           <button type="button" class="user-menu-item" data-action="logout">
