@@ -72,14 +72,24 @@ body {
   background: #2a3441;
 }
 
-/* 品牌（顶部，紧接折叠按钮下方） */
+/* 品牌（顶部，紧接折叠按钮下方；作为按钮点击回首页） */
 .brand {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 2px 8px;
+  padding: 4px 8px;
   font-weight: 600;
+  font-size: 15px;
   color: #fff;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  border-radius: 8px;
+}
+.brand:hover {
+  background: #2a3441;
 }
 .brand-mark {
   font-size: 18px;
@@ -140,6 +150,110 @@ body {
   font-size: 12px;
   color: #7a8698;
   white-space: nowrap;
+}
+
+/* 主页面（landing）时隐藏侧边栏 */
+.sidebar.hidden {
+  display: none;
+}
+
+/* ---------- 侧边栏底部用户栏 ---------- */
+.user-box {
+  position: relative;
+  margin-top: auto;
+}
+.user-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #cfd6e0;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.user-trigger:hover {
+  background: #2a3441;
+  color: #fff;
+}
+.user-avatar {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #3a4553;
+  color: #fff;
+  font-size: 12px;
+}
+.user-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.user-caret {
+  margin-left: auto;
+  font-size: 11px;
+  color: #7a8698;
+}
+.sidebar.collapsed .user-name,
+.sidebar.collapsed .user-caret {
+  display: none;
+}
+.sidebar.collapsed .user-trigger {
+  justify-content: center;
+}
+.user-menu {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: calc(100% + 6px);
+  background: #1e2530;
+  border: 1px solid #3a4553;
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  z-index: 20;
+}
+.user-menu[hidden] {
+  display: none;
+}
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  color: #e6ebf1;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+}
+.user-menu-item:hover {
+  background: #2a3441;
+}
+.user-menu-icon {
+  flex: 0 0 auto;
+  width: 18px;
+  text-align: center;
+}
+.user-menu-sep {
+  height: 1px;
+  background: #3a4553;
+  margin: 5px 6px;
+}
+.user-menu-ver {
+  padding: 4px 10px 2px;
+  font-size: 11px;
+  color: #7a8698;
 }
 
 /* ================= 右侧内容区 ================= */
@@ -1361,5 +1475,84 @@ body {
     max-height: 240px;
     overflow: auto;
     order: -1;
+  }
+}
+
+/* ============================================================
+   主页面（landing，进入前入口）
+   ============================================================ */
+.landing {
+  min-height: calc(100vh - 48px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.landing-hero {
+  text-align: center;
+  padding: 32px;
+  max-width: 520px;
+}
+.landing-mark {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 54px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), #4f8bff);
+  border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(47, 111, 237, 0.35);
+}
+.landing-title {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.landing-sub {
+  margin: 12px 0 30px;
+  color: var(--muted);
+  font-size: 15px;
+}
+.landing-enter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 34px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(47, 111, 237, 0.3);
+  transition: background 0.15s, transform 0.15s;
+}
+.landing-enter:hover {
+  background: #2a61d8;
+  transform: translateY(-1px);
+}
+.landing-enter-arrow {
+  font-weight: 400;
+}
+.landing-hint {
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 520px) {
+  .landing-mark {
+    width: 80px;
+    height: 80px;
+    font-size: 44px;
+    border-radius: 20px;
+  }
+  .landing-title {
+    font-size: 28px;
   }
 }

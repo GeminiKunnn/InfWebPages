@@ -34,10 +34,11 @@
         <span class="collapse-icon">☰</span>
       </button>
 
-      <div class="brand">
+      <!-- 品牌（点击回到主页面） -->
+      <button type="button" class="brand" data-action="go-home" title="回到首页">
         <span class="brand-mark">∞</span>
         <span class="brand-text">无限流</span>
-      </div>
+      </button>
 
       <!-- 菜单项：规则书 / 角色卡 / 其他 -->
       <nav class="menu" id="menu">
@@ -55,8 +56,21 @@
         </button>
       </nav>
 
-      <div class="sidebar-footer">
-        <span class="menu-text">v0.1.0</span>
+      <!-- 用户信息（点击展开下拉：登出 / 版本，暂为界面） -->
+      <div class="user-box" id="user-box">
+        <button type="button" class="user-trigger" data-action="toggle-user-menu" title="账户">
+          <span class="user-avatar">▲</span>
+          <span class="user-name" id="user-name">未登录</span>
+          <span class="user-caret">▾</span>
+        </button>
+        <div class="user-menu" id="user-menu" hidden>
+          <button type="button" class="user-menu-item" data-action="logout">
+            <span class="user-menu-icon">⎋</span>
+            <span>登出</span>
+          </button>
+          <div class="user-menu-sep"></div>
+          <div class="user-menu-ver">v0.1.0</div>
+        </div>
       </div>
     </aside>
 

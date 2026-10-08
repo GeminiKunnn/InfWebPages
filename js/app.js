@@ -38,8 +38,8 @@ import {
 /** 单一状态对象，引用自 store，UI 与它双向同步。 */
 let character = emptyCharacter();
 
-/** 应用级导航状态：当前页面（规则书/角色卡/其他）。 */
-const appState = { page: 'character' };
+/** 应用级导航状态：screen=界面层（landing 主页面 / app 应用界面）；page=应用内页面（规则书/角色卡/其他）。 */
+const appState = { screen: 'landing', page: 'character' };
 
 /** 角色卡内部「表单（sheet）切换」：当前激活的子面板。 */
 const sheetState = { active: 'main' };
@@ -1789,10 +1789,10 @@ function renderCharacterPage() {
 
   app.appendChild(
     el('header', { class: 'masthead' }, [
-      el('h1', { text: '无限流角色卡' }),
+      el('h1', { text: '鲲版无限角色卡' }),
       el('p', {
         class: 'subtitle',
-        text: '参考《Rules/快速创建角色卡.docx》与《无限半自动卡》整理 · 顶部标签切换不同表单',
+        text: '目前正在测试中，仅用于UI展示',
       }),
     ])
   );
@@ -1828,12 +1828,49 @@ async function renderRulesPage() {
 }
 
 function renderOtherPage() {
-  renderEmptyPage('其他', '预留扩展空间。后续可按需加入自定义模块。');
+  renderEmptyPage('其他', '预留页面，暂无内容。');
+}
+
+/* ------------------------- 主页面（landing） ------------------------- */
+
+/** 主页面：入口欢迎页。应用界面由「进入」按钮进入。 */
+function renderLandingPage() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  const page = el('div', { class: 'landing' }, [
+    el('div', { class: 'landing-hero' }, [
+      el('div', { class: 'landing-mark' }, [el('span', { text: '∞' })]),
+      el('h1', { class: 'landing-title', text: '鲲版无限网页角色卡' }),
+      el('p', { class: 'landing-sub', text: '角色 · 资源 一站式管理' }),
+      el('button', { type: 'button', class: 'landing-enter', dataset: { action: 'enter-app', } }, [
+        el('span', { text: '进入' }),
+        el('span', { class: 'landing-enter-arrow', text: ' →' }),
+      ]),
+      el('p', { class: 'landing-hint', text: '点击进入开始使用角色卡' }),
+    ]),
+  ]);
+  app.appendChild(page);
+  toggleSidebarForScreen();
+}
+
+/** 根据 screen 决定是否显示侧边栏：主页面隐藏侧边栏，应用界面显示。 */
+function toggleSidebarForScreen() {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+  sidebar.classList.toggle('hidden', appState.screen === 'landing');
 }
 
 /* ------------------------- 应用级页面路由 ------------------------- */
 
 function renderPage() {
+  toggleSidebarForScreen();
+
+  // 主页面：只显示 landing，不渲染应用内页面（也避免高亮菜单项）
+  if (appState.screen === 'landing') {
+    renderLandingPage();
+    return;
+  }
+
   // 高亮左侧菜单
   document.querySelectorAll('.menu-item').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.page === appState.page);
@@ -1848,6 +1885,16 @@ function renderPage() {
 
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+/* 用户下拉（顶部下方底部用户栏）：展开/收起 / 关闭 */
+function toggleUserMenu() {
+  const menu = document.getElementById('user-menu');
+  if (menu) menu.hidden = !menu.hidden;
+}
+function closeUserMenu() {
+  const menu = document.getElementById('user-menu');
+  if (menu) menu.hidden = true;
 }
 
 /* ------------------------- 动态行：通用增删 ------------------------- */
@@ -1915,6 +1962,39 @@ function setupGlobalEvent() {
       return;
     }
 
+    // 品牌（顶部「无限流」）→ 回到主页面
+    if (e.target.closest('[data-action="go-home"]')) {
+      appState.screen = 'landing';
+      closeUserMenu();
+      renderPage();
+      return;
+    }
+
+    // 主页面「进入」→ 进入应用界面（默认应用内页面为角色卡）
+    if (e.target.closest('[data-action="enter-app"]')) {
+      appState.screen = 'app';
+      renderPage();
+      return;
+    }
+
+    // 用户栏：展开/收起下拉
+    if (e.target.closest('[data-action="toggle-user-menu"]')) {
+      toggleUserMenu();
+      return;
+    }
+
+    // 登出（当前仅界面：展示提示，不接入真实登录）
+    if (e.target.closest('[data-action="logout"]')) {
+      closeUserMenu();
+      flash('已登出（当前为演示，未接入真实账户）');
+      return;
+    }
+
+    // 点击其它区域时收起用户下拉
+    if (document.querySelector('#user-menu') && !e.target.closest('.user-box')) {
+      closeUserMenu();
+    }
+
     const menuBtn = e.target.closest('.menu-item[data-page]');
     if (menuBtn) {
       appState.page = menuBtn.dataset.page;
@@ -1975,6 +2055,8 @@ async function boot() {
   const saved = await api.load();
   if (saved) character = saved;
 
+  // 打开网页默认进入主页面（landing），由用户点击「进入」再到应用界面。
+  appState.screen = 'landing';
   renderPage();
   setupGlobalEvent();
 }

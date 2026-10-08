@@ -293,7 +293,7 @@ export async function renderRulesPage({ host = null } = {}) {
   h1.textContent = '规则书';
   const sub = document.createElement('p');
   sub.className = 'subtitle';
-  //sub.textContent = '从规则书文档转写而来，可选择章节查看。内容仅供参考，以规则书原文为准。';
+  sub.textContent = '规则书等待更新中，仅作展示';
   masthead.appendChild(h1);
   masthead.appendChild(sub);
   page.appendChild(masthead);
