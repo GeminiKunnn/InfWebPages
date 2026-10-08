@@ -12,6 +12,7 @@
  */
 
 import { ATTRIBUTES, SKILLS, GROUPS } from './character-config.js';
+import { renderRulesPage as renderRulesPageFromModule } from './rules.js';
 
 /** 三系分组标题（生理/心智/互动），跨整行。 */
 function renderGroupRow(label, colspan) {
@@ -1822,8 +1823,8 @@ function renderEmptyPage(title, note) {
   );
 }
 
-function renderRulesPage() {
-  renderEmptyPage('规则书', '该页面暂时留空。后续可在此展示基础规则 / 战斗规则 / 其它规则等内容。');
+async function renderRulesPage() {
+  await renderRulesPageFromModule();
 }
 
 function renderOtherPage() {

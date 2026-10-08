@@ -1153,3 +1153,213 @@ body {
     overflow-x: auto;
   }
 }
+
+/* ============================================================
+   规则书页（rules.js）
+   ============================================================ */
+
+.rules-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.rules-pick {
+  padding: 7px 16px;
+  font-size: 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.rules-pick:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.rules-pick.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.rules-body {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+/* 侧边竖目录 */
+.rules-toc-wrap {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--border-radius);
+  padding: 12px 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.rules-toc {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+.toc-item {
+  color: var(--ink);
+  text-decoration: none;
+  line-height: 1.35;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border-left: 2px solid transparent;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.toc-item:hover {
+  background: var(--accent-weak);
+}
+.toc-item.active {
+  background: var(--accent-weak);
+  color: var(--accent);
+  border-left-color: var(--accent);
+  font-weight: 600;
+}
+.toc-item[data-level="2"] {
+  padding-left: 8px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+.toc-item[data-level="3"] {
+  padding-left: 22px;
+}
+.toc-item[data-level="4"],
+.toc-item[data-level="5"],
+.toc-item[data-level="6"] {
+  padding-left: 36px;
+  color: var(--muted);
+}
+
+/* 正文（markdown 渲染区） */
+.rules-md {
+  min-width: 0;
+}
+.rules-loading,
+.rules-error {
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+}
+.rules-error {
+  color: #c0392b;
+}
+.rules-article {
+  line-height: 1.75;
+  font-size: 15px;
+}
+.rules-article h1 {
+  font-size: 26px;
+  margin: 10px 0 18px;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 8px;
+}
+.rules-article h2 {
+  font-size: 21px;
+  margin: 26px 0 12px;
+  border-left: 4px solid var(--accent);
+  padding-left: 10px;
+  scroll-margin-top: 16px;
+}
+.rules-article h3 {
+  font-size: 17px;
+  margin: 20px 0 10px;
+  scroll-margin-top: 16px;
+}
+.rules-article h4,
+.rules-article h5,
+.rules-article h6 {
+  font-size: 15px;
+  margin: 16px 0 8px;
+  color: #333;
+  scroll-margin-top: 16px;
+}
+.rules-article h2.toc-anchor-active,
+.rules-article h3.toc-anchor-active,
+.rules-article h4.toc-anchor-active {
+  border-radius: 6px;
+}
+.rules-article p {
+  margin: 10px 0;
+}
+.rules-article ul,
+.rules-article ol {
+  margin: 10px 0;
+  padding-left: 24px;
+}
+.rules-article li {
+  margin: 4px 0;
+}
+.rules-article strong {
+  color: var(--ink);
+}
+.rules-article a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.rules-article a:hover {
+  text-decoration: underline;
+}
+.rules-article blockquote {
+  margin: 12px 0;
+  padding: 8px 14px;
+  background: var(--accent-weak);
+  border-left: 4px solid var(--accent);
+  color: var(--ink);
+  border-radius: 0 8px 8px 0;
+}
+.rules-article code {
+  background: #f1f2f4;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.92em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+.rules-article table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 14px 0;
+  font-size: 14px;
+  display: block;
+  overflow-x: auto;
+}
+.rules-article th,
+.rules-article td {
+  border: 1px solid var(--line);
+  padding: 6px 10px;
+  text-align: left;
+}
+.rules-article th {
+  background: var(--accent-weak);
+  font-weight: 700;
+}
+.rules-article hr {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 20px 0;
+}
+
+@media (max-width: 900px) {
+  .rules-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rules-toc-wrap {
+    position: static;
+    max-height: 240px;
+    overflow: auto;
+    order: -1;
+  }
+}
